@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Juniu Connect Manager
+Exec=/opt/jcm/main.py
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=/opt/jcm/res/app.svg
+Categories=GNOME;GTK;Network;
+X-Desktop-File-Install-Version=0.21
