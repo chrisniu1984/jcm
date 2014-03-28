@@ -3,7 +3,7 @@
     <site name="Local Shell" type="shell" />
 
     <dir name="公司">
-      <site name="跳板机-A" type="ssh" host="1.1.1.1" port="22" user="root" pass="root"> 
+      <site name="跳板机-A" type="ssh" host="1.1.1.1" port="22" user="root" pass="root" filezilla="true"> 
         <btn name="服务器">
           <cmd name="服务器A" cmd="ssh root@1.1.1.2"  expect_key="password:" expect_val="123456"/>
           <cmd name="服务器B" cmd="ssh root@1.1.1.3"  expect_key="password:" expect_val="123456"/>
