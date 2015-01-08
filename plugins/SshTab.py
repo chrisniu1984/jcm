@@ -81,6 +81,16 @@ class SshTab(Frame.AbsTab):
 
     def open(self, cfg):
         self.cfg = cfg
+
+        # if have filezilla
+        if cfg.has_key("filezilla") and cfg["filezilla"] == "true":
+            item = gtk.ToolButton(None, "FileZilla")
+            item.connect("clicked", self._on_filezilla_clicked, cfg);
+            self.toolbar.insert(item, -1);
+            # |
+            item = gtk.SeparatorToolItem()
+            self.toolbar.insert(item, -1)
+
         self._extra_process(cfg["extra"])
         self.vte.feed("connecting ... " + cfg["host"] + ":" + cfg["port"] + "\r\n")
         self.vte.feed("\r\n")
@@ -123,6 +133,15 @@ class SshTab(Frame.AbsTab):
                 
     def _on_btn_clicked(self, widget, menu=None):
         menu.popup(None, None, None, 0, 0, None)
+
+    def _on_filezilla_clicked(self, widget, cfg):
+        argv = "sftp://" + \
+                cfg["user"] + ":" + \
+                cfg["pass"] + "@" + \
+                cfg["host"] + ":" + \
+                cfg["port"]
+
+        self.frame.execute("/usr/bin/filezilla", ("filezilla", argv));
 
     def _on_cmd_clicked(self, widget, cmd=None):
         if cmd.has_key("title"):

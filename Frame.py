@@ -16,6 +16,7 @@ ICON_APP="app.svg"
 ICON_CLOSE="close.png"
 
 class AbsTab:
+    # 返回None说明是自动加载的Tab控件
     @staticmethod
     def get_type():abstract
 
@@ -68,8 +69,8 @@ class Frame:
         self.window.connect('key-press-event', self._on_window_key_press);
 
         self.notebook = gtk.Notebook()
-        self.notebook.set_show_border(False)
-        #self.notebook.set_show_tabs(True)
+        self.notebook.set_show_border(True)
+        self.notebook.set_show_tabs(True)
         self.window.add(self.notebook)
     
     def load_plugins(self):
@@ -211,3 +212,15 @@ class Frame:
             obj.open(cfg)
         else:
             print "[ER] type %s is not found" % t
+
+    def execute(self, app, argv=()):
+        pid = os.fork()
+        if pid == 0:
+            if os.fork() == 0:
+                os.execv(app, argv) 
+            else:
+                sys.exit(0)
+        elif pid < 0:
+            print "fork error"
+        else:
+            os.waitpid(pid, 0)
