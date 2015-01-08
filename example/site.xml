@@ -12,6 +12,7 @@
 
       <site name="跳板机-B" type="ssh" host="1.1.2.1" port="22" user="root" pass="2222222" /> 
     </dir>
+
     <dir name="现场">
     </dir>
 </root>

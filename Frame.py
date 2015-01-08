@@ -12,7 +12,7 @@ PATH_EXAMPLE="example"
 
 PATH_CONFIG=".jcm"
 
-ICON_APP="app.svg"
+ICON_APP="app.png"
 ICON_CLOSE="close.png"
 
 class AbsTab:
