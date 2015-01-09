@@ -3,9 +3,8 @@
 import os
 import shutil
 
-import gobject
-import gtk
-import vte
+from gi.repository import Gdk, Gtk, GObject
+from gi.repository.GdkPixbuf import Pixbuf
 
 try:
     import xml.etree.cElementTree as ET
@@ -32,6 +31,9 @@ COL_PIXBUF = 0
 COL_NAME   = 1
 COL_CFG    = 2
 
+PIXBUF_SIZE = 32
+IMG_SIZE = 32
+
 class SiteTab(Frame.AbsTab):
     @staticmethod
     def get_type():
@@ -43,16 +45,16 @@ class SiteTab(Frame.AbsTab):
         self.config = frame.path_config + "/" + SITEFILE
         self.img = {}
 
-        self.img["dir"] = gtk.gdk.pixbuf_new_from_file(self.frame.path_res + "/" + IMG_DIR)
-        self.img["site"] = gtk.gdk.pixbuf_new_from_file(self.frame.path_res + "/" + IMG_SITE)
-        self.img["shell"] = gtk.gdk.pixbuf_new_from_file(self.frame.path_res + "/" + IMG_SHELL)
-        self.img["ssh"] = gtk.gdk.pixbuf_new_from_file(self.frame.path_res + "/" + IMG_SSH)
+        self.img["dir"]     = self.frame.load_pixbuf(IMG_DIR, PIXBUF_SIZE)
+        self.img["site"]    = self.frame.load_pixbuf(IMG_SITE, PIXBUF_SIZE)
+        self.img["shell"]   = self.frame.load_pixbuf(IMG_SHELL, PIXBUF_SIZE)
+        self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, PIXBUF_SIZE)
 
         # head
-        self.label = gtk.Label("Site List")
+        self.label = Gtk.Label("Site List")
 
         # body
-        self.vbox = gtk.VBox(False, 0)
+        self.vbox = Gtk.VBox(False, 0)
         self._toolbar()
         self._treestore()
         self._treeview()
@@ -73,44 +75,56 @@ class SiteTab(Frame.AbsTab):
         return False
 
     def _toolbar(self):
-        self.toolbar = gtk.Toolbar()
-        self.toolbar.set_style(gtk.TOOLBAR_BOTH);
+        self.toolbar = Gtk.Toolbar()
+        self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
         self.vbox.pack_start(self.toolbar, False, False, 0)
 
         # quit
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/quit.png"), "Quit")
-        self.toolbar.insert(item, -1)
+        item = Gtk.ToolButton()
+        item.set_label("Quit")
+        item.set_icon_widget(self.frame.load_img(IMG_QUIT, IMG_SIZE))
         item.connect("clicked", self._on_quit_clicked)
+        self.toolbar.insert(item, -1)
 
         # close all
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/" + IMG_CLOSEALL), "Close All")
-        self.toolbar.insert(item, -1)
+        item = Gtk.ToolButton()
+        item.set_label("Close All")
+        item.set_icon_widget(self.frame.load_img(IMG_CLOSEALL, IMG_SIZE))
         item.connect("clicked", self._on_close_all_clicked)
+        self.toolbar.insert(item, -1)
 
         # |
-        item = gtk.SeparatorToolItem()
+        item = Gtk.SeparatorToolItem()
         self.toolbar.insert(item, -1)
 
-        # reload
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/" + IMG_RELOAD), "Reload Config")
-        self.toolbar.insert(item, -1)
+        # reload config
+        item = Gtk.ToolButton()
+        item.set_label("Reload Config")
+        item.set_icon_widget(self.frame.load_img(IMG_RELOAD, IMG_SIZE))
         item.connect("clicked", self._on_reload_clicked)
-
-        # reload
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/" + IMG_EDIT), "Edit Config")
         self.toolbar.insert(item, -1)
+
+        # edit config
+        item = Gtk.ToolButton()
+        item.set_label("Edit Config")
+        item.set_icon_widget(self.frame.load_img(IMG_EDIT, IMG_SIZE))
         item.connect("clicked", self._on_edit_clicked)
+        self.toolbar.insert(item, -1)
 
         # |
-        item = gtk.SeparatorToolItem()
+        item = Gtk.SeparatorToolItem()
         self.toolbar.insert(item, -1)
 
         # help
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/" + IMG_HELP), "Help")
+        item = Gtk.ToolButton()
+        item.set_label("Help")
+        item.set_icon_widget(self.frame.load_img(IMG_HELP, IMG_SIZE))
         self.toolbar.insert(item, -1)
 
         # About
-        item = gtk.ToolButton(gtk.image_new_from_file(self.frame.path_res + "/" + IMG_ABOUT), "About")
+        item = Gtk.ToolButton()
+        item.set_label("About")
+        item.set_icon_widget(self.frame.load_img(IMG_ABOUT, IMG_SIZE))
         self.toolbar.insert(item, -1)
 
     def _on_quit_clicked(self, widget, data=None):
@@ -131,6 +145,15 @@ class SiteTab(Frame.AbsTab):
     def _on_edit_clicked(self, widget, data=None):
         os.system("gvim " + self.config)
 
+    def _cfg_extra(self, xml_node):
+        name = xml_node.tag;
+        attr = xml_node.attrib.copy();
+        lst = []
+        for child in xml_node:
+            lst.append(self._cfg_extra(child))
+
+        return {"__NAME__":name, "__ATTR__" : attr, "__CHILDREN__":lst}
+
     def _append_node(self, xml_node, parent):
         if xml_node.tag == "root":
             for child in xml_node:
@@ -142,48 +165,39 @@ class SiteTab(Frame.AbsTab):
                 self._append_node(child, p)
 
         elif xml_node.tag == "site":
-            cfg = xml_node.attrib.copy()
-
-            cfg["extra"] = []
+            cfg = xml_node.attrib.copy() # 当前元素所有属性通过字典方式存储
+            cfg["__EXTRA__"] = [] # 子节点通过数组方式存储,_每个成员格式为 {NAME, ATTR, CHILDREN}。
             for c in xml_node:
-                if c.tag != "btn":
-                    continue
-                btn = []
-                btn.append(c.attrib["name"])
-                for cc in c:
-                    if cc.tag != "cmd":
-                        continue
-                    btn.append(cc.attrib.copy())
-                cfg["extra"].append(btn)
+                cfg["__EXTRA__"].append(self._cfg_extra(c));
 
             img = self.img["site"]
             if cfg.has_key("type") and self.img.has_key(cfg["type"]):
                 img = self.img[cfg["type"]]
             p = self.treestore.append(parent, [img, cfg["name"], cfg])
-            #print cfg
+            # print cfg
 
     def _treestore(self):
-        self.treestore = gtk.TreeStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, object)
+        self.treestore = Gtk.TreeStore(Pixbuf, GObject.TYPE_STRING, object)
         self._on_reload_clicked(None)
 
     def _treeview(self):
-        self.treeview = gtk.TreeView()
+        self.treeview = Gtk.TreeView()
         self.treeview.set_model(self.treestore)
         self.vbox.pack_start(self.treeview, True, True, 0)
 
         self.treeview.set_headers_visible(False)
         self.treeview.connect("row-activated", self._on_treeview_row_activated)
-        sel = self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+        sel = self.treeview.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
 
-        col = gtk.TreeViewColumn()
+        col = Gtk.TreeViewColumn()
         col.set_title("Site List");
         self.treeview.append_column(col);
 
-        renderer = gtk.CellRendererPixbuf();
+        renderer = Gtk.CellRendererPixbuf();
         col.pack_start(renderer, False);
         col.add_attribute(renderer, "pixbuf", COL_PIXBUF);
 
-        renderer = gtk.CellRendererText();
+        renderer = Gtk.CellRendererText();
         col.pack_start(renderer, False);
         col.add_attribute(renderer, "text", COL_NAME);
 

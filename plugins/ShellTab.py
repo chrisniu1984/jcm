@@ -3,10 +3,12 @@
 import os
 import signal
 
-import gtk
-import vte
+from gi.repository import Gdk, Gtk, GObject, Vte
+from gi.repository.GdkPixbuf import Pixbuf
 
 import Frame
+
+IMG_CLOSE="close.png"
 
 class ShellTab(Frame.AbsTab):
     @staticmethod
@@ -17,39 +19,41 @@ class ShellTab(Frame.AbsTab):
         self.frame = frame
 
         # head
-        self.hbox = gtk.HBox(False, 0)
-        self.label = gtk.Label("Local Shell")
-        self.hbox.pack_start(self.label)
-        self.button = gtk.Button()
-        self.button.set_image(gtk.image_new_from_file(self.frame.res_icon_close))
-        self.button.set_relief(gtk.RELIEF_NONE)
+        self.hbox = Gtk.HBox(False, 0)
+        self.label = Gtk.Label("SHELL")
+        self.hbox.pack_start(self.label, False, False, 0)
+        self.button = Gtk.Button()
+        self.button.set_image(self.frame.load_img(IMG_CLOSE, 16))
+        self.button.set_relief(Gtk.ReliefStyle.NONE)
         self.button.connect("clicked", self._on_close_clicked)
 
         self.hbox.pack_start(self.button, False, False, 0);
         self.hbox.show_all()
 
         # body
-        self.vte = vte.Terminal()
-        self.vte.set_font_from_string("WenQuanYi Micro Hei Mono 11");
-        self.vte.set_scrollback_lines(1024);
-        self.vte.set_scroll_on_keystroke(1);
-        self.vte.connect("button-press-event", self._on_vte_button_press);
-        self.vte.show_all()
+        self.term = Vte.Terminal()
+        #self.term.set_font_from_string("WenQuanYi Micro Hei Mono 11");
+        self.term.set_scrollback_lines(1024);
+        self.term.set_scroll_on_keystroke(1);
+        self.term.connect("button-press-event", self._on_term_button_press);
+        self.term.show_all()
 
     def head(self):
         return self.hbox
 
     def body(self):
-        return self.vte
+        return self.term
 
     def focus(self):
-        self.vte.grab_focus()
+        self.term.grab_focus()
 
     def open(self, cfg):
         cmd = ['/bin/bash']
-        self.childpid = self.vte.fork_command(cmd[0], cmd, os.getcwd())
+        self.childpid = self.term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
+                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+
         if self.childpid > 0:
-            self.vte.connect('child-exited', self._on_child_exited)
+            self.term.connect('child-exited', self._on_child_exited)
 
     def close(self):
         if self.childpid > 0:
@@ -66,10 +70,10 @@ class ShellTab(Frame.AbsTab):
     def _on_close_clicked(self, widget, data=None):
         self.close()
 
-    def _on_vte_button_press(self, widget, event):
-        if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-            if self.vte.get_has_selection():
-                self.vte.copy_clipboard()
-                self.vte.select_none()
+    def _on_term_button_press(self, widget, event):
+        if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+            if self.term.get_has_selection():
+                self.term.copy_clipboard()
+                self.term.select_none()
             else:
-                self.vte.paste_clipboard()
+                self.term.paste_clipboard()

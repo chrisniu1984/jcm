@@ -4,7 +4,10 @@
 import os
 import os.path
 import sys
-import gtk
+
+from gi.repository import Gdk, Gtk, GObject
+from gi.repository import GdkPixbuf
+from gi.repository.GdkPixbuf import Pixbuf
 
 PATH_PLAGIN="plugins"
 PATH_RES="res"
@@ -13,7 +16,6 @@ PATH_EXAMPLE="example"
 PATH_CONFIG=".jcm"
 
 ICON_APP="app.png"
-ICON_CLOSE="close.png"
 
 class AbsTab:
     # 返回None说明是自动加载的Tab控件
@@ -36,12 +38,8 @@ class AbsTab:
     def close(self):abstract
 
 class Frame:
-    def __res_icon__(self):
-        self.res_icon_app = self.path_res + "/" + ICON_APP;
-        self.res_icon_close = self.path_res + "/" + ICON_CLOSE;
-
     def __init__(self, title, version):
-        gtk.gdk.threads_init()
+        Gdk.threads_init()
 
         self.path = os.path.dirname(__file__)
         self.path_res = self.path + "/" + PATH_RES
@@ -49,29 +47,38 @@ class Frame:
         self.path_example = self.path + "/" + PATH_EXAMPLE
         self.path_config = os.getenv("HOME") + "/" + PATH_CONFIG
 
-        self.__res_icon__()
-
         if os.path.exists(self.path_config) == False:
             os.mkdir(self.path_config)
         elif os.path.isdir(self.path_config) == False:
             print "[ERROR] " + self.path_config + " is not a direcotry !"
             sys.exit(-1)
 
-        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         self.window.set_title(title + " " + version)
-        self.window.set_icon_from_file(self.res_icon_app)
+        self.window.set_icon_from_file(self.path_res + "/" + ICON_APP)
         self.window.set_default_size(500, 400)
         self.window.maximize()
-        self.window.set_position(gtk.WIN_POS_CENTER)
+        self.window.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
         self.window.connect('delete-event',self._on_window_delete_event)
     
-        self.window.set_events(gtk.gdk.KEY_PRESS_MASK);
-        self.window.connect('key-press-event', self._on_window_key_press);
+        self.window.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        self.window.connect('key-press-event', self._on_window_key_press)
 
-        self.notebook = gtk.Notebook()
+        self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
         self.window.add(self.notebook)
+
+    def load_pixbuf(self, name, size=None):
+        fname = self.path_res + "/" + name
+        pixbuf = Pixbuf.new_from_file(fname)
+        if size != None:
+            return pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.HYPER)
+        return pixbuf
+
+    def load_img(self, name, size=None):
+        pixbuf = self.load_pixbuf(name, size)
+        return Gtk.Image.new_from_pixbuf(pixbuf)
     
     def load_plugins(self):
         self.mod = {}
@@ -113,7 +120,7 @@ class Frame:
         self.window.show_all()
 
         page = self.notebook.get_nth_page(ret)
-        page.set_data("tab", obj)
+        setattr(page, "tab", obj)
 
         if focus:
             self.notebook.set_current_page(ret)
@@ -127,18 +134,18 @@ class Frame:
     
     def quit(self, ask):
         if ask == False:
-            gtk.quit_main()
+            Gtk.quit_main()
             return False
 
-        dlg = gtk.MessageDialog(self.window,
-                                gtk.DIALOG_MODAL,
-                                gtk.MESSAGE_QUESTION,
-                                gtk.BUTTONS_YES_NO,
+        dlg = Gtk.MessageDialog(self.window,
+                                Gtk.DialogFlags.MODAL,
+                                Gtk.MessageType.QUESTION,
+                                Gtk.ButtonsType.YES_NO,
                                 "Quit ?")
         ret = dlg.run()
-        if ret == gtk.RESPONSE_YES:
+        if ret == Gtk.ResponseType.YES:
             dlg.destroy()
-            gtk.main_quit()
+            Gtk.main_quit()
             return False
         else:
             dlg.destroy()
@@ -149,7 +156,7 @@ class Frame:
         i = 0
         while i < num:
             page = self.notebook.get_nth_page(i)
-            tab = page.get_data("tab")
+            tab = getattr(page, "tab")
             if tab.close() == True:
                 num = self.notebook.get_n_pages()
                 i = 0
@@ -161,13 +168,13 @@ class Frame:
             self._close_all()
             return False
 
-        dlg = gtk.MessageDialog(self.window,
-                                gtk.DIALOG_MODAL,
-                                gtk.MESSAGE_QUESTION,
-                                gtk.BUTTONS_YES_NO,
+        dlg = Gtk.MessageDialog(self.window,
+                                Gtk.DialogFlags.MODAL,
+                                Gtk.MessageType.QUESTION,
+                                Gtk.ButtonsType.YES_NO,
                                 "Close All Tabs ?")
         ret = dlg.run()
-        if ret == gtk.RESPONSE_YES:
+        if ret == Gtk.ResponseType.YES:
             dlg.destroy()
             self._close_all()
             return False
@@ -180,15 +187,15 @@ class Frame:
 
     def _on_window_key_press(self, widget, event):
         # 快捷键 Ctrl + ?
-        if (event.state & gtk.gdk.CONTROL_MASK) == gtk.gdk.CONTROL_MASK:
-            if event.keyval == gtk.keysyms.Right or event.keyval == gtk.keysyms.Page_Down:
+        if (event.state & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK:
+            if event.keyval == Gdk.KEY_Right or event.keyval == Gdk.KEY_Page_Down:
                 num = self.notebook.get_current_page() + 1
                 count = self.notebook.get_n_pages()
                 if num >= count:
                     num = 0;
                 self.notebook.set_current_page(num)
                 return True
-            if event.keyval == gtk.keysyms.Left or event.keyval == gtk.keysyms.Page_Up:
+            if event.keyval == Gdk.KEY_Left or event.keyval == Gdk.KEY_Page_Up:
                 num = self.notebook.get_current_page() - 1
                 count = self.notebook.get_n_pages()
                 if num < 0:
@@ -199,7 +206,7 @@ class Frame:
         # 任何按键输入后，焦点切换到指定控件。
         num = self.notebook.get_current_page()
         page = self.notebook.get_nth_page(num)
-        tab = page.get_data("tab")
+        tab = getattr(page, "tab")
         if tab != None:
             tab.focus()
         return False
@@ -213,11 +220,13 @@ class Frame:
         else:
             print "[ER] type %s is not found" % t
 
-    def execute(self, app, argv=()):
+    def execute(self, cmd):
+        argv = tuple(cmd.split(" "))
+
         pid = os.fork()
         if pid == 0:
             if os.fork() == 0:
-                os.execv(app, argv) 
+                os.execvpe(argv[0], argv, os.environ)
             else:
                 sys.exit(0)
         elif pid < 0:
