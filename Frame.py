@@ -74,7 +74,6 @@ class Frame:
         self._header_bar(title + " " + version)
         self.window.set_titlebar(self.header)
 
-
         self._notebook()
 
     def _header_bar(self, title):
@@ -261,7 +260,10 @@ class Frame:
         pid = os.fork()
         if pid == 0:
             if os.fork() == 0:
-                os.execvpe(argv[0], argv, os.environ)
+                env = os.environ
+                if env.has_key("UBUNTU_MENUPROXY"):
+                    del env["UBUNTU_MENUPROXY"]
+                os.execvpe(argv[0], argv, env)
             else:
                 sys.exit(0)
         elif pid < 0:
