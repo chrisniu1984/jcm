@@ -74,7 +74,6 @@ class Frame:
         self._header_bar(title + " " + version)
         self.window.set_titlebar(self.header)
 
-
         self._notebook()
 
     def _header_bar(self, title):
@@ -87,7 +86,14 @@ class Frame:
         item.set_image(self.load_img("clean.svg", 16));
         item.connect("clicked", self._on_close_all_tabs_clicked)
 
-        if os.system("lsb_release -is") == "Ubuntu":
+        f = open("/etc/lsb-release")
+        if f != None:
+            lines = f.readlines()
+            f.close()
+        else:
+            lines = [""]
+
+        if lines[0].strip().endswith("Ubuntu"):
             self.header.pack_end(item)
         else:
             self.header.pack_start(item)
@@ -254,7 +260,10 @@ class Frame:
         pid = os.fork()
         if pid == 0:
             if os.fork() == 0:
-                os.execvpe(argv[0], argv, os.environ)
+                env = os.environ
+                if env.has_key("UBUNTU_MENUPROXY"):
+                    del env["UBUNTU_MENUPROXY"]
+                os.execvpe(argv[0], argv, env)
             else:
                 sys.exit(0)
         elif pid < 0:
