@@ -73,15 +73,9 @@ class Frame:
 
         self._header_bar(title + " " + version)
         self.window.set_titlebar(self.header)
-        Gtk.Settings.get_default().connect("notify::gtk-decoration-layout",
-                                            self._update_decorations);
 
 
         self._notebook()
-
-    def _update_decorations(self, settings, pspec):
-        layout_desc = settings.props.gtk_decoration_layout;
-        self.header.set_decoration_layout(layout_desc)
 
     def _header_bar(self, title):
         self.header = Gtk.HeaderBar()
@@ -89,12 +83,14 @@ class Frame:
         self.header.set_show_close_button(True)
 
         # close all tabs
-        #item = Gtk.Button("Close Tabs")
         item = Gtk.Button()
-        #item.set_relief(Gtk.ReliefStyle.NONE)
         item.set_image(self.load_img("clean.svg", 16));
         item.connect("clicked", self._on_close_all_tabs_clicked)
-        self.header.pack_start(item)
+
+        if os.system("lsb_release -is") == "Ubuntu":
+            self.header.pack_end(item)
+        else:
+            self.header.pack_start(item)
 
         self.header.show_all()
 

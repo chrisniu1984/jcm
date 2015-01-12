@@ -10,6 +10,20 @@ import Frame
 
 IMG_CLOSE="close.svg"
 
+def vte_terminal_RUN(term, cmd):
+    if hasattr(term, "spawn_sync"):
+        return term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
+                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+    elif hasattr(term, "fork_command_full"):
+        return term.fork_command_full(Vte.PtyFlags.DEFAULT, os.getcwd(),
+                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+
+def vte_terminal_CONNECT_CHILD_EXITED(term, _on_child_exited_old, _on_child_exited):
+    if hasattr(term, "spawn_sync"):
+        term.connect('child-exited', _on_child_exited)
+    elif hasattr(term, "fork_command_full"):
+        term.connect('child-exited', _on_child_exited_old)
+    
 class ShellTab(Frame.AbsTab):
     @staticmethod
     def get_type():
@@ -49,11 +63,11 @@ class ShellTab(Frame.AbsTab):
 
     def open(self, cfg):
         cmd = ['/bin/bash']
-        self.childpid = self.term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
-                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+        self.childpid = vte_terminal_RUN(self.term, cmd)
 
         if self.childpid > 0:
-            self.term.connect('child-exited', self._on_child_exited)
+            vte_terminal_CONNECT_CHILD_EXITED(self.term,
+                self._on_child_exited_old, self._on_child_exited)
 
     def close(self):
         if self.childpid > 0:
@@ -64,6 +78,10 @@ class ShellTab(Frame.AbsTab):
         return True
 
     def _on_child_exited(self, widget, x):
+        self.childpid = 0
+        self.close()
+
+    def _on_child_exited_old(self, widget):
         self.childpid = 0
         self.close()
 

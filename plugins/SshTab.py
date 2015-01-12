@@ -12,6 +12,21 @@ IMG_CLOSE="close.svg"
 
 MENU_SIZE = 16
 
+def vte_terminal_RUN(term, cmd):
+    if hasattr(term, "spawn_sync"):
+        return term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
+                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+    elif hasattr(term, "fork_command_full"):
+        return term.fork_command_full(Vte.PtyFlags.DEFAULT, os.getcwd(),
+                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+
+def vte_terminal_CONNECT_CHILD_EXITED(term, _on_child_exited_old, _on_child_exited):
+    if hasattr(term, "spawn_sync"):
+        term.connect('child-exited', _on_child_exited)
+    elif hasattr(term, "fork_command_full"):
+        term.connect('child-exited', _on_child_exited_old)
+    
+
 class EXPECT:
     def __init__(self, hint, val, once=False, item=None):
         self.hint = hint
@@ -162,11 +177,12 @@ class SshTab(Frame.AbsTab):
         self.label.set_text(cfg["name"])
         cmd = ['/usr/bin/ssh', cfg["user"] + "@" + cfg["host"], "-p", cfg["port"]]
 
-        self.childpid = self.term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
-                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
+        self.childpid = vte_terminal_RUN(self.term, cmd)
 
         if self.childpid > 0:
-            self.term.connect('child-exited', self._on_child_exited)
+            vte_terminal_CONNECT_CHILD_EXITED(self.term,
+                self._on_child_exited_old, self._on_child_exited)
+
             self.term.connect('contents-changed', self._on_contents_changed)
 
     def close(self):
@@ -178,6 +194,10 @@ class SshTab(Frame.AbsTab):
         return True
 
     def _on_child_exited(self, widget, x):
+        self.childpid = 0
+        self.close()
+
+    def _on_child_exited_old(self, widget):
         self.childpid = 0
         self.close()
 
@@ -212,8 +232,8 @@ class SshTab(Frame.AbsTab):
         if attr.has_key("expect_hint"):
             self.expect[attr["expect_hint"]] = EXPECT(attr["expect_hint"], attr["expect_input"], True)
 
-        if attr.has_key("input"):
-            self.term.feed_child(attr["input"]+"\n", -1)
+        if attr.has_key("val"):
+            self.term.feed_child(attr["val"]+"\n", -1)
 
     def _on_menu_expect_clicked(self, widget, expect=None):
         expect = getattr(widget, "expect")
