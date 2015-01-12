@@ -163,7 +163,11 @@ class SshTab(Frame.AbsTab):
                 self._extra_menu(e)
                 self.menubar.show_all()
             elif e["__NAME__"] == "execute":
-                self.frame.execute(e["__ATTR__"]["val"]);
+                a = e["__ATTR__"]
+                if a.has_key("sync") and a["sync"] == 'true':
+                    os.system(a["val"])
+                else:
+                    self.frame.execute(a["val"]);
             elif e["__NAME__"] == "expect":
                 self._extra_expect(e)
 
