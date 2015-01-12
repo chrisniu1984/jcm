@@ -8,7 +8,7 @@ from gi.repository.GdkPixbuf import Pixbuf
 
 import Frame
 
-IMG_CLOSE="close.png"
+IMG_CLOSE="close.svg"
 
 class ShellTab(Frame.AbsTab):
     @staticmethod
@@ -63,7 +63,7 @@ class ShellTab(Frame.AbsTab):
         self.frame.del_tab(self)
         return True
 
-    def _on_child_exited(self, widget):
+    def _on_child_exited(self, widget, x):
         self.childpid = 0
         self.close()
 

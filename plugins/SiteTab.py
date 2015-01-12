@@ -17,22 +17,15 @@ SITEFILE = "site.xml"
 
 IMG_DIR = "dir.png"
 IMG_SITE = "site.png"
-IMG_SHELL = "shell.png"
+IMG_SHELL = "shell.svg"
 IMG_SSH = "ssh.png"
 
-IMG_QUIT = "quit.png"
-IMG_CLOSEALL = "close_all.png"
 IMG_RELOAD = "reload.png"
 IMG_EDIT = "edit.png"
-IMG_HELP = "help.png"
-IMG_ABOUT = "about.png"
 
 COL_PIXBUF = 0
 COL_NAME   = 1
 COL_CFG    = 2
-
-PIXBUF_SIZE = 32
-IMG_SIZE = 32
 
 class SiteTab(Frame.AbsTab):
     @staticmethod
@@ -45,10 +38,10 @@ class SiteTab(Frame.AbsTab):
         self.config = frame.path_config + "/" + SITEFILE
         self.img = {}
 
-        self.img["dir"]     = self.frame.load_pixbuf(IMG_DIR, PIXBUF_SIZE)
-        self.img["site"]    = self.frame.load_pixbuf(IMG_SITE, PIXBUF_SIZE)
-        self.img["shell"]   = self.frame.load_pixbuf(IMG_SHELL, PIXBUF_SIZE)
-        self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, PIXBUF_SIZE)
+        self.img["dir"]     = self.frame.load_pixbuf(IMG_DIR, 24)
+        self.img["site"]    = self.frame.load_pixbuf(IMG_SITE)
+        self.img["shell"]   = self.frame.load_pixbuf(IMG_SHELL, 24)
+        self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, 24)
 
         # head
         self.label = Gtk.Label("Site List")
@@ -76,62 +69,22 @@ class SiteTab(Frame.AbsTab):
 
     def _toolbar(self):
         self.toolbar = Gtk.Toolbar()
-        self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
+        self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
         self.vbox.pack_start(self.toolbar, False, False, 0)
-
-        # quit
-        item = Gtk.ToolButton()
-        item.set_label("Quit")
-        item.set_icon_widget(self.frame.load_img(IMG_QUIT, IMG_SIZE))
-        item.connect("clicked", self._on_quit_clicked)
-        self.toolbar.insert(item, -1)
-
-        # close all
-        item = Gtk.ToolButton()
-        item.set_label("Close All")
-        item.set_icon_widget(self.frame.load_img(IMG_CLOSEALL, IMG_SIZE))
-        item.connect("clicked", self._on_close_all_clicked)
-        self.toolbar.insert(item, -1)
-
-        # |
-        item = Gtk.SeparatorToolItem()
-        self.toolbar.insert(item, -1)
 
         # reload config
         item = Gtk.ToolButton()
-        item.set_label("Reload Config")
-        item.set_icon_widget(self.frame.load_img(IMG_RELOAD, IMG_SIZE))
+        #item.set_label("Reload Config")
+        item.set_icon_widget(self.frame.load_img(IMG_RELOAD))
         item.connect("clicked", self._on_reload_clicked)
         self.toolbar.insert(item, -1)
 
         # edit config
         item = Gtk.ToolButton()
         item.set_label("Edit Config")
-        item.set_icon_widget(self.frame.load_img(IMG_EDIT, IMG_SIZE))
+        item.set_icon_widget(self.frame.load_img(IMG_EDIT))
         item.connect("clicked", self._on_edit_clicked)
         self.toolbar.insert(item, -1)
-
-        # |
-        item = Gtk.SeparatorToolItem()
-        self.toolbar.insert(item, -1)
-
-        # help
-        item = Gtk.ToolButton()
-        item.set_label("Help")
-        item.set_icon_widget(self.frame.load_img(IMG_HELP, IMG_SIZE))
-        self.toolbar.insert(item, -1)
-
-        # About
-        item = Gtk.ToolButton()
-        item.set_label("About")
-        item.set_icon_widget(self.frame.load_img(IMG_ABOUT, IMG_SIZE))
-        self.toolbar.insert(item, -1)
-
-    def _on_quit_clicked(self, widget, data=None):
-        self.frame.quit(True)
-
-    def _on_close_all_clicked(self, widget, data=None):
-        self.frame.close_all(True)
 
     def _on_reload_clicked(self, widget, data=None):
         if os.path.exists(self.config) == False:

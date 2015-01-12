@@ -8,7 +8,7 @@ from gi.repository.GdkPixbuf import Pixbuf
 
 import Frame
 
-IMG_CLOSE="close.png"
+IMG_CLOSE="close.svg"
 
 MENU_SIZE = 16
 

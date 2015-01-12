@@ -5,6 +5,9 @@ import os
 import os.path
 import sys
 
+import gi
+gi.require_version("Gtk", "3.0")
+
 from gi.repository import Gdk, Gtk, GObject
 from gi.repository import GdkPixbuf
 from gi.repository.GdkPixbuf import Pixbuf
@@ -16,6 +19,7 @@ PATH_EXAMPLE="example"
 PATH_CONFIG=".jcm"
 
 ICON_APP="app.png"
+IMG_CLOSEALL = "close_all.png"
 
 class AbsTab:
     # 返回None说明是自动加载的Tab控件
@@ -53,17 +57,48 @@ class Frame:
             print "[ERROR] " + self.path_config + " is not a direcotry !"
             sys.exit(-1)
 
-        self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
-        self.window.set_title(title + " " + version)
+        # application
+        self.app = Gtk.Application.new("juniu.jcm", 0)
+
+        # window
+        self.window = Gtk.ApplicationWindow(Gtk.WindowType.TOPLEVEL)
         self.window.set_icon_from_file(self.path_res + "/" + ICON_APP)
-        self.window.set_default_size(500, 400)
-        self.window.maximize()
         self.window.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        self.window.connect('delete-event',self._on_window_delete_event)
-    
+        self.window.set_default_size(500, 400)
+        #self.window.set_decorated(False)
+        self.window.maximize()
         self.window.set_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.window.connect('key-press-event', self._on_window_key_press)
+        self.window.connect('delete-event',self._on_window_delete_event)
 
+        self._header_bar(title + " " + version)
+        self.window.set_titlebar(self.header)
+        Gtk.Settings.get_default().connect("notify::gtk-decoration-layout",
+                                            self._update_decorations);
+
+
+        self._notebook()
+
+    def _update_decorations(self, settings, pspec):
+        layout_desc = settings.props.gtk_decoration_layout;
+        self.header.set_decoration_layout(layout_desc)
+
+    def _header_bar(self, title):
+        self.header = Gtk.HeaderBar()
+        self.header.set_title(title)
+        self.header.set_show_close_button(True)
+
+        # close all tabs
+        #item = Gtk.Button("Close Tabs")
+        item = Gtk.Button()
+        #item.set_relief(Gtk.ReliefStyle.NONE)
+        item.set_image(self.load_img("clean.svg", 16));
+        item.connect("clicked", self._on_close_all_tabs_clicked)
+        self.header.pack_start(item)
+
+        self.header.show_all()
+
+    def _notebook(self):
         self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
@@ -106,6 +141,7 @@ class Frame:
 
     def show(self):
         self.window.show_all()
+        Gtk.main()
     
     def hide(self):
         self.window.hide_all()
@@ -163,11 +199,7 @@ class Frame:
             else:
                 i += 1
 
-    def close_all(self, ask=True):
-        if ask == False:
-            self._close_all()
-            return False
-
+    def _on_close_all_tabs_clicked(self, widget, data=None):
         dlg = Gtk.MessageDialog(self.window,
                                 Gtk.DialogFlags.MODAL,
                                 Gtk.MessageType.QUESTION,
