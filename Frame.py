@@ -87,7 +87,14 @@ class Frame:
         item.set_image(self.load_img("clean.svg", 16));
         item.connect("clicked", self._on_close_all_tabs_clicked)
 
-        if os.system("lsb_release -is") == "Ubuntu":
+        f = open("/etc/lsb-release")
+        if f != None:
+            lines = f.readlines()
+            f.close()
+        else:
+            lines = [""]
+
+        if lines[0].strip().endswith("Ubuntu"):
             self.header.pack_end(item)
         else:
             self.header.pack_start(item)
