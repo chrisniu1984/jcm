@@ -11,7 +11,9 @@ class Term(Vte.Terminal):
 
         self.set_scrollback_lines(1024)
         self.set_scroll_on_keystroke(True)
-        self.set_rewrap_on_resize(True)
+
+        if hasattr(self, "set_rewrap_on_resize"):
+            self.set_rewrap_on_resize(True)
     
         # EXPECT
         self.last_text = ""
@@ -30,7 +32,7 @@ class Term(Vte.Terminal):
         if hasattr(self, "spawn_sync"):
             ret, child_pid = self.spawn_sync(Vte.PtyFlags.DEFAULT, cwd,
                                 cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)
-        elif hasattr(term, "fork_command_full"):
+        elif hasattr(self, "fork_command_full"):
             ret, child_pid = self.fork_command_full(Vte.PtyFlags.DEFAULT, cwd,
                                 cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)
     
