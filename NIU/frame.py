@@ -42,10 +42,10 @@ class AbsTab:
     def close(self):abstract
 
 class Frame:
-    def __init__(self, title, version):
+    def __init__(self, title, version, cwd):
         Gdk.threads_init()
 
-        self.path = os.path.dirname(__file__)
+        self.path = cwd
         self.path_res = self.path + "/" + PATH_RES
         self.path_plugin = self.path + "/" + PATH_PLAGIN
         self.path_example = self.path + "/" + PATH_EXAMPLE
@@ -86,7 +86,11 @@ class Frame:
         item.set_image(self.load_img("clean.svg", 16));
         item.connect("clicked", self._on_close_all_tabs_clicked)
 
-        f = open("/etc/lsb-release")
+        try:
+            f = open("/etc/lsb-release")
+        except:
+            f = None
+
         if f != None:
             lines = f.readlines()
             f.close()
@@ -206,7 +210,7 @@ class Frame:
                                 Gtk.DialogFlags.MODAL,
                                 Gtk.MessageType.QUESTION,
                                 Gtk.ButtonsType.YES_NO,
-                                "Close All Tabs ?")
+                                "Close All Tabs?")
         ret = dlg.run()
         if ret == Gtk.ResponseType.YES:
             dlg.destroy()
@@ -220,7 +224,7 @@ class Frame:
         return self.quit(True)
 
     def _on_window_key_press(self, widget, event):
-        # 快捷键 Ctrl + ?
+        # 快捷键 Ctrl + xxx
         if (event.state & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK:
             if event.keyval == Gdk.KEY_Right or event.keyval == Gdk.KEY_Page_Down:
                 num = self.notebook.get_current_page() + 1

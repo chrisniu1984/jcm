@@ -6,65 +6,40 @@ import signal
 from gi.repository import Gdk, Gtk, GObject, Vte
 from gi.repository.GdkPixbuf import Pixbuf
 
-import Frame
+from NIU import Frame, AbsTab, Term, Expect
 
-IMG_CLOSE="close.svg"
+IMG_TYPE="ssh.png"
+IMG_CLOSE="close.png"
+IMG_CLONE="clone.png"
 
 MENU_SIZE = 16
 
-def vte_terminal_RUN(term, cmd):
-    if hasattr(term, "spawn_sync"):
-        return term.spawn_sync(Vte.PtyFlags.DEFAULT, os.getcwd(),
-                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
-    elif hasattr(term, "fork_command_full"):
-        return term.fork_command_full(Vte.PtyFlags.DEFAULT, os.getcwd(),
-                            cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)[1]
-
-def vte_terminal_CONNECT_CHILD_EXITED(term, _on_child_exited_old, _on_child_exited):
-    if hasattr(term, "spawn_sync"):
-        term.connect('child-exited', _on_child_exited)
-    elif hasattr(term, "fork_command_full"):
-        term.connect('child-exited', _on_child_exited_old)
-    
-
-class EXPECT:
-    def __init__(self, hint, val, once=False, item=None):
-        self.hint = hint
-        self.val = val
-        self.once = once
-        self.item = item
-
-    @staticmethod
-    def new_from_cfg(cfg_expect, item=None):
-        if cfg_expect["__NAME__"] != "expect":
-            return
-        attr = cfg_expect["__ATTR__"]
-
-        once = False
-        if attr.has_key("once") and attr["once"] == "true":
-            once = True
-
-        return EXPECT(attr["hint"], attr["input"], once, item)
-
-class SshTab(Frame.AbsTab):
+class SshTab(AbsTab):
     @staticmethod
     def get_type():
         return "ssh";
 
     def __init__(self, frame):
         self.frame = frame
-        self.expect = {} # hint -> EXPECT
-        self.last_text = ""
+        self.cfg = None
 
         # head
         self.hbox = Gtk.HBox(False, 0)
-
+        self.img = self.frame.load_img(IMG_TYPE, MENU_SIZE);
+        self.hbox.pack_start(self.img, False, False, 0)
         self.label = Gtk.Label("")
         self.hbox.pack_start(self.label, False, False, 0)
+
+        self.clone = Gtk.Button()
+        self.clone.set_image(self.frame.load_img(IMG_CLONE, 16))
+        self.clone.set_relief(Gtk.ReliefStyle.NONE)
+        self.clone.connect("clicked", self.__on_clone_clicked)
+        self.hbox.pack_start(self.clone, False, False, 0);
+
         self.button = Gtk.Button()
         self.button.set_image(self.frame.load_img(IMG_CLOSE, 16))
         self.button.set_relief(Gtk.ReliefStyle.NONE)
-        self.button.connect("clicked", self._on_close_clicked, None)
+        self.button.connect("clicked", self.__on_close_clicked, None)
 
         self.hbox.pack_start(self.button, False, False, 0);
         self.hbox.show_all()
@@ -76,11 +51,8 @@ class SshTab(Frame.AbsTab):
         self.vbox.pack_start(self.menubar, False, False, 0)
         self.vbox.show_all()
 
-        self.term = Vte.Terminal()
-        #self.term.set_font_from_string("WenQuanYi Micro Hei Mono 11");
-        self.term.set_scrollback_lines(1024);
-        self.term.set_scroll_on_keystroke(1);
-        self.term.connect("button-press-event", self._on_term_button_press);
+        self.term = Term()
+        self.term.connect("child-exited", self.__on_child_exited)
         self.vbox.pack_start(self.term, True, True, 0)
         self.vbox.show_all()
 
@@ -123,36 +95,37 @@ class SshTab(Frame.AbsTab):
                 item = Gtk.ImageMenuItem(attr["name"]);
                 item.set_always_show_image(True)
                 item.set_image(self.frame.load_img("input.png", MENU_SIZE))
-                item.connect("activate", self._on_menu_input_clicked, cfg_item);
+                setattr(item, "__ATTR__", cfg_item["__ATTR__"])
+                item.connect("activate", self.__on_menu_input_clicked);
                 submenu.append(item)
 
             elif cfg_item["__NAME__"] == "execute":
                 item = Gtk.ImageMenuItem(attr["name"]);
                 item.set_always_show_image(True)
                 item.set_image(self.frame.load_img("execute.png", MENU_SIZE))
-                item.connect("activate", self._on_execute_clicked, attr["val"]);
+                item.connect("activate", self.__on_execute_clicked, attr["val"]);
                 submenu.append(item)
 
             elif cfg_item["__NAME__"] == "expect":
                 item = Gtk.CheckMenuItem(attr["name"]);
 
-                expect = EXPECT.new_from_cfg(cfg_item, item)
+                expect = Expect.new_from_dict(cfg_item["__ATTR__"], item)
 
                 if attr.has_key("check") and attr["check"] == "true":
                     item.set_active(True)
-                    self.expect[expect.hint] = expect
+                    self.term.expect[expect.hint] = expect
 
                 setattr(item, "expect", expect)
-                item.connect("activate", self._on_menu_expect_clicked);
+                item.connect("activate", self.__on_menu_expect_clicked);
                 submenu.append(item)
 
         submenu.show_all()
 
     def _extra_expect(self, cfg_expect):
-        expect = EXPECT.new_from_cfg(cfg_expect)
+        expect = Expect.new_from_dict(cfg_expect["__ATTR__"])
         if expect == None:
             return
-        self.expect[expect.hint] = expect
+        self.term.expect[expect.hint] = expect
 
     def open(self, cfg):
         self.cfg = cfg
@@ -173,21 +146,18 @@ class SshTab(Frame.AbsTab):
 
         # auto add expect for login
         if cfg.has_key("pass"):
-            self.expect["password:"] = EXPECT("password:", cfg["pass"], True)
+            self.term.expect["password:"] = Expect(hint="password:", val=cfg["pass"], once=True)
 
         self.term.feed("connecting ... " + cfg["host"] + ":" + cfg["port"] + "\r\n")
         self.term.feed("\n")
 
-        self.label.set_text(cfg["name"])
+        self.label.set_text("  " + cfg["name"] + " ")
         cmd = ['/usr/bin/ssh', cfg["user"] + "@" + cfg["host"], "-p", cfg["port"]]
 
-        self.childpid = vte_terminal_RUN(self.term, cmd)
+        self.childpid = self.term.RUN(cmd)
 
-        if self.childpid > 0:
-            vte_terminal_CONNECT_CHILD_EXITED(self.term,
-                self._on_child_exited_old, self._on_child_exited)
-
-            self.term.connect('contents-changed', self._on_contents_changed)
+        if self.childpid != None:
+            self.term.connect("child-exited", self.__on_child_exited)
 
     def close(self):
         if self.childpid > 0:
@@ -197,59 +167,33 @@ class SshTab(Frame.AbsTab):
         self.frame.del_tab(self)
         return True
 
-    def _on_child_exited(self, widget, x):
+    def __on_child_exited(self, widget, stat):
         self.childpid = 0
         self.close()
 
-    def _on_child_exited_old(self, widget):
-        self.childpid = 0
+    def __on_clone_clicked(self, widget, data=None):
+        self.frame.run(self.cfg)
+
+    def __on_close_clicked(self, widget, data=None):
         self.close()
 
-    def _on_close_clicked(self, widget, data=None):
-        self.close()
-
-    def _on_contents_changed(self, widget, data=None):
-        text = self.term.get_text(None)[0].strip()
-        if text == self.last_text:
-            return
-        self.last_text = text
-
-        # expect
-        for k,e in self.expect.items():
-            if text.endswith(k):
-                self.term.feed_child(e.val + "\n", -1)
-                if e.once:
-                    if e.item != None:
-                        e.item.set_active(False)
-                    else:
-                        del self.expect[k]
-                return
-
-    def _on_execute_clicked(self, widget, val):
+    def __on_execute_clicked(self, widget, val):
         self.frame.execute(val)
-        #os.system(val)
 
-    def _on_menu_input_clicked(self, widget, cfg_input=None):
-        attr = cfg_input["__ATTR__"]
-
-        # is this expect?
-        if attr.has_key("expect_hint"):
-            self.expect[attr["expect_hint"]] = EXPECT(attr["expect_hint"], attr["expect_input"], True)
+    def __on_menu_input_clicked(self, widget):
+        attr = getattr(widget, "__ATTR__")
 
         if attr.has_key("val"):
+            # is there a Expect ?
+            if attr.has_key("expect_hint"):
+                self.term.expect[attr["expect_hint"]] = \
+                    Expect(hint=attr["expect_hint"], val=attr["expect_input"], once=True)
+
             self.term.feed_child(attr["val"]+"\n", -1)
 
-    def _on_menu_expect_clicked(self, widget, expect=None):
+    def __on_menu_expect_clicked(self, widget, expect=None):
         expect = getattr(widget, "expect")
         if widget.get_active() == True:
-            self.expect[expect.hint] = expect
+            self.term.expect[expect.hint] = expect
         else:
-            del self.expect[expect.hint]
-
-    def _on_term_button_press(self, widget, event):
-        if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
-            if self.term.get_has_selection():
-                self.term.copy_clipboard()
-                self.term.select_none()
-            else:
-                self.term.paste_clipboard()
+            del self.term.expect[expect.hint]

@@ -11,13 +11,13 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-import Frame
+from NIU import Frame, AbsTab
 
 SITEFILE = "site.xml"
 
 IMG_DIR = "dir.png"
 IMG_SITE = "site.png"
-IMG_SHELL = "shell.svg"
+IMG_SHELL = "shell.png"
 IMG_SSH = "ssh.png"
 
 IMG_RELOAD = "reload.png"
@@ -27,7 +27,7 @@ COL_PIXBUF = 0
 COL_NAME   = 1
 COL_CFG    = 2
 
-class SiteTab(Frame.AbsTab):
+class SiteTab(AbsTab):
     @staticmethod
     def get_type():
         # None 是自动加载插件。

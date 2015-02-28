@@ -3,11 +3,12 @@
     <site name="Local Shell" type="shell" />
 
     <site name="跳板服务器" type="ssh" host="1.1.1.1" port="22" user="root" pass="123456"> 
-      <expect hint="xxxx" input="123" once="true" />
+      <expect hint="xxxx" val="123" once="true" />
+      <execute val="gedit" sync="true"/>
       <execute val="gedit" />
 
       <menu name="Expect">
-        <expect name="auto ls" hint="ls" input="" once="true" check="true"/>
+        <expect name="auto ls" hint="ls" val="" once="true" check="true"/>
       </menu>
 
       <menu name="Execute">
