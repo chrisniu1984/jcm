@@ -20,7 +20,7 @@ class Term(Vte.Terminal):
         # CB
         self.call_title_changed = None
 
-    def SET_TITLE_CHAGED(self, cb):
+    def SET_TITLE_CHANGED(self, cb):
         self.call_title_changed = cb
 
     def RUN(self, cmd, cwd=None):
@@ -40,11 +40,6 @@ class Term(Vte.Terminal):
 
     def ADD_EXPECT(self, hint, val, once=False, checkMenuItem=None):
         self.expect[hint] = Expect(hint=hint, val=val, once=once, checkMenuItem=checkMenuItem)
-
-    def ADD_EXPECT_BY_DICT(self, d, checkMenuItem=None):
-        expect = Expect.new_from_dict(d, checkMenuItem)
-        if expect != None:
-            self.expect[expect.hint] = expect
 
     def DEL_EXPECT(self, hint):
         if self.expect.has_key(hint):

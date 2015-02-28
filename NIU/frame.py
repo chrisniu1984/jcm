@@ -8,38 +8,71 @@ import sys
 import gi
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gdk, Gtk, GObject
-from gi.repository import GdkPixbuf
+from gi.repository import Gdk, Gtk, GObject, GdkPixbuf
 from gi.repository.GdkPixbuf import Pixbuf
 
 PATH_PLAGIN="plugins"
 PATH_RES="res"
-PATH_EXAMPLE="example"
-
 PATH_CONFIG=".jcm"
 
 ICON_APP="app.png"
-IMG_CLOSEALL = "close_all.png"
+
+ICON_CLOSEALL = "close_all.png"
+ICON_CLONE="clone.png"
+ICON_CLOSE="close.png"
+
+MENU_SIZE = 16
+
+class TabHead(Gtk.HBox):
+    def __init__(self, frame=None, title="", img=None, clone=True, close=True):
+        Gtk.HBox.__init__(self, False, 0)
+
+        self.frame = frame
+
+        # icon
+        if img != None and len(img) != 0:
+            self.img = self.frame.load_img(img, MENU_SIZE);
+            self.pack_start(self.img, False, False, 0)
+
+        # title
+        self.label = Gtk.Label(title)
+        self.pack_start(self.label, False, False, 0)
+
+        # clone button
+        if clone:
+            self.clone = Gtk.Button()
+            self.clone.set_image(self.frame.load_img(ICON_CLONE, MENU_SIZE))
+            self.clone.set_relief(Gtk.ReliefStyle.NONE)
+            self.pack_start(self.clone, False, False, 0);
+
+        # close button
+        if close:
+            self.close = Gtk.Button()
+            self.close.set_image(self.frame.load_img(ICON_CLOSE, MENU_SIZE))
+            self.close.set_relief(Gtk.ReliefStyle.NONE)
+            self.pack_start(self.close, False, False, 0);
+
+        self.show_all()
+
+    def set_clone_clicked(self, cb):
+        self.clone.connect("clicked", cb)
+
+    def set_close_clicked(self, cb):
+        self.close.connect("clicked", cb)
+
+    def set_title(self, title):
+        self.label.set_text(title)
 
 class AbsTab:
     # 返回None说明是自动加载的Tab控件
     @staticmethod
     def get_type():abstract
-
     def __init__(self, frame):abstract
-
-    # 获取tab头控件
-    def head(self):abstract
-
-    # 获取tab内容控件
-    def body(self):abstract
-
-    def focus(self):abstract
-
-    def open(self, cfg):abstract
-
-    # return: True 已正常关闭，False此Tab不支持关闭
-    def close(self):abstract
+    def on_head(self):abstract # 获取tab头控件
+    def on_body(self):abstract # 获取tab内容控件
+    def on_focus(self):abstract
+    def do_open(self, cfg):abstract
+    def do_close(self):abstract # return: True 已正常关闭，False此Tab不支持关闭
 
 class Frame:
     def __init__(self, title, version, cwd):
@@ -48,7 +81,6 @@ class Frame:
         self.path = cwd
         self.path_res = self.path + "/" + PATH_RES
         self.path_plugin = self.path + "/" + PATH_PLAGIN
-        self.path_example = self.path + "/" + PATH_EXAMPLE
         self.path_config = os.getenv("HOME") + "/" + PATH_CONFIG
 
         if os.path.exists(self.path_config) == False:
@@ -83,25 +115,19 @@ class Frame:
 
         # close all tabs
         item = Gtk.Button()
-        item.set_image(self.load_img("clean.svg", 16));
+        item.set_image(self.load_img("clean.svg", MENU_SIZE));
         item.connect("clicked", self._on_close_all_tabs_clicked)
 
-        try:
-            f = open("/etc/lsb-release")
-        except:
-            f = None
+        is_ubuntu = False
+        for s in os.uname():
+            if s.lower().find("ubuntu") != -1:
+                is_ubuntu = True
 
-        if f != None:
-            lines = f.readlines()
-            f.close()
-        else:
-            lines = [""]
-
-        if lines[0].strip().endswith("Ubuntu"):
+        # 在Ubuntu系统中将'close all tabs'放在右侧
+        if is_ubuntu:
             self.header.pack_end(item)
         else:
             self.header.pack_start(item)
-
         self.header.show_all()
 
     def _notebook(self):
@@ -129,48 +155,49 @@ class Frame:
             if n[-3:] != ".py":
                 continue
             name = n[0:-3]
-            mod = __import__(name)
-            cls = getattr(mod, name)
 
-            t = cls.get_type()
+            # 装载模块，获得类句柄
+            mod = __import__(name)
+            clazz = getattr(mod, name)
+
+            # 获得插件类型
+            t = clazz.get_type()
+
             # type != None 为协议类型插件，需要时再创建此类对象。
             if t != None:
                 if self.mod.has_key(t):
-                    print "Type Conflict: %s: %s and %s" % (t, str(cls), str(self.mod[t]))
+                    print "Type Conflict: %s: %s and %s" % (t, str(clazz), str(self.mod[t]))
                     continue;
-                self.mod[t] = cls
+                self.mod[t] = clazz
             # type == None的插件是自动加载插件。
             else:
-                obj = cls(self)
-                self.add_tab(obj)
-                obj.open(None)
+                tab = clazz(self)
+                self.add_tab(tab)
+                tab.do_open(None)
 
-    def show(self):
+    def loop(self):
         self.window.show_all()
         Gtk.main()
     
-    def hide(self):
-        self.window.hide_all()
-
-    def add_tab(self, obj, focus=True, reorderable=True):
-        if isinstance(obj, AbsTab) == False:
+    def add_tab(self, tab, focus=True, reorderable=True):
+        if isinstance(tab, AbsTab) == False:
             return -1
 
-        ret = self.notebook.append_page(obj.body(), obj.head())
-        self.notebook.set_tab_reorderable(obj.body(), reorderable)
+        ret = self.notebook.append_page(tab.on_body(), tab.on_head())
+        self.notebook.set_tab_reorderable(tab.on_body(), reorderable)
         self.notebook.show_all()
         self.window.show_all()
 
         page = self.notebook.get_nth_page(ret)
-        setattr(page, "tab", obj)
+        setattr(page, "tab", tab)
 
         if focus:
             self.notebook.set_current_page(ret)
 
         return ret
     
-    def del_tab(self, obj):
-        n = self.notebook.page_num(obj.body())
+    def del_tab(self, tab):
+        n = self.notebook.page_num(tab.on_body())
         if n != -1:
             self.notebook.remove_page(n)
     
@@ -199,7 +226,7 @@ class Frame:
         while i < num:
             page = self.notebook.get_nth_page(i)
             tab = getattr(page, "tab")
-            if tab.close() == True:
+            if tab.do_close() == True:
                 num = self.notebook.get_n_pages()
                 i = 0
             else:
@@ -246,7 +273,7 @@ class Frame:
         page = self.notebook.get_nth_page(num)
         tab = getattr(page, "tab")
         if tab != None:
-            tab.focus()
+            tab.on_focus()
         return False
 
     def run(self, cfg):
@@ -254,23 +281,6 @@ class Frame:
         if self.mod.has_key(t):
             obj = self.mod[t](self)
             self.add_tab(obj)
-            obj.open(cfg)
+            obj.do_open(cfg)
         else:
             print "[ER] type %s is not found" % t
-
-    def execute(self, cmd):
-        argv = tuple(cmd.split(" "))
-
-        pid = os.fork()
-        if pid == 0:
-            if os.fork() == 0:
-                env = os.environ
-                if env.has_key("UBUNTU_MENUPROXY"):
-                    del env["UBUNTU_MENUPROXY"]
-                os.execvpe(argv[0], argv, env)
-            else:
-                sys.exit(0)
-        elif pid < 0:
-            print "fork error"
-        else:
-            os.waitpid(pid, 0)

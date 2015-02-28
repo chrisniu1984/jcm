@@ -11,7 +11,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-from NIU import Frame, AbsTab
+from NIU import Frame, AbsTab, TabHead
 
 SITEFILE = "site.xml"
 
@@ -36,15 +36,16 @@ class SiteTab(AbsTab):
     def __init__(self, frame):
         self.frame = frame
         self.config = frame.path_config + "/" + SITEFILE
-        self.img = {}
 
+        # img
+        self.img = {}
         self.img["dir"]     = self.frame.load_pixbuf(IMG_DIR, 24)
         self.img["site"]    = self.frame.load_pixbuf(IMG_SITE)
         self.img["shell"]   = self.frame.load_pixbuf(IMG_SHELL, 24)
         self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, 24)
 
         # head
-        self.label = Gtk.Label("Site List")
+        self.head = TabHead(frame, title="Site List", clone=False, close=False)
 
         # body
         self.vbox = Gtk.VBox(False, 0)
@@ -52,19 +53,19 @@ class SiteTab(AbsTab):
         self._treestore()
         self._treeview()
 
-    def head(self):
-        return self.label
+    def on_head(self):
+        return self.head
 
-    def body(self):
+    def on_body(self):
         return self.vbox
 
-    def focus(self):
+    def on_focus(self):
         self.treeview.grab_focus();
 
-    def open(self, cfg):
+    def do_open(self, cfg):
         pass
 
-    def close(self):
+    def do_close(self):
         return False
 
     def _toolbar(self):
@@ -74,7 +75,6 @@ class SiteTab(AbsTab):
 
         # reload config
         item = Gtk.ToolButton()
-        #item.set_label("Reload Config")
         item.set_icon_widget(self.frame.load_img(IMG_RELOAD))
         item.connect("clicked", self._on_reload_clicked)
         self.toolbar.insert(item, -1)
@@ -117,6 +117,10 @@ class SiteTab(AbsTab):
             for child in xml_node:
                 self._append_node(child, p)
 
+        # xml中每个site元素都会生成一个字段对象cfg，cfg对象的具体结构如下：
+        # 1、site元素的所有属性都通过字典方式存储到cfg对象中。
+        # 2、cfg中有个特殊的key叫做"__EXTRA__"，其值是个数组。用来存储所有字节点。
+        #    数组中每个成员格式为 {__NAME__, __ATTR__, __CHILDREN__}。
         elif xml_node.tag == "site":
             cfg = xml_node.attrib.copy() # 当前元素所有属性通过字典方式存储
             cfg["__EXTRA__"] = [] # 子节点通过数组方式存储,_每个成员格式为 {NAME, ATTR, CHILDREN}。
@@ -143,7 +147,6 @@ class SiteTab(AbsTab):
         sel = self.treeview.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
 
         col = Gtk.TreeViewColumn()
-        col.set_title("Site List");
         self.treeview.append_column(col);
 
         renderer = Gtk.CellRendererPixbuf();

@@ -11,4 +11,4 @@ if __name__ == "__main__":
     cwd = os.path.abspath(os.path.dirname(__file__))
     frame = Frame("Juniu Connect Manager", "1.1.1", cwd)
     frame.load_plugins()
-    frame.show()
+    frame.loop()

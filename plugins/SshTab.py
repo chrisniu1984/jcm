@@ -6,11 +6,7 @@ import signal
 from gi.repository import Gdk, Gtk, GObject, Vte
 from gi.repository.GdkPixbuf import Pixbuf
 
-from NIU import Frame, AbsTab, Term, Expect
-
-IMG_TYPE="ssh.png"
-IMG_CLOSE="close.png"
-IMG_CLONE="clone.png"
+from NIU import Frame, AbsTab, TabHead, Term, Expect, Misc
 
 MENU_SIZE = 16
 
@@ -24,52 +20,41 @@ class SshTab(AbsTab):
         self.cfg = None
 
         # head
-        self.hbox = Gtk.HBox(False, 0)
-        self.img = self.frame.load_img(IMG_TYPE, MENU_SIZE);
-        self.hbox.pack_start(self.img, False, False, 0)
-        self.label = Gtk.Label("")
-        self.hbox.pack_start(self.label, False, False, 0)
-
-        self.clone = Gtk.Button()
-        self.clone.set_image(self.frame.load_img(IMG_CLONE, 16))
-        self.clone.set_relief(Gtk.ReliefStyle.NONE)
-        self.clone.connect("clicked", self.__on_clone_clicked)
-        self.hbox.pack_start(self.clone, False, False, 0);
-
-        self.button = Gtk.Button()
-        self.button.set_image(self.frame.load_img(IMG_CLOSE, 16))
-        self.button.set_relief(Gtk.ReliefStyle.NONE)
-        self.button.connect("clicked", self.__on_close_clicked, None)
-
-        self.hbox.pack_start(self.button, False, False, 0);
-        self.hbox.show_all()
+        self.head = TabHead(frame, img="ssh.png")
+        self.head.set_clone_clicked(self.__on_clone_clicked)
+        self.head.set_close_clicked(self.__on_close_clicked)
 
         # body
         self.vbox = Gtk.VBox(False, 0)
 
+        # menu
         self.menubar = Gtk.MenuBar()
         self.vbox.pack_start(self.menubar, False, False, 0)
         self.vbox.show_all()
 
+        # term
         self.term = Term()
+        self.term.SET_TITLE_CHANGED(self.__on_title_changed);
         self.term.connect("child-exited", self.__on_child_exited)
         self.vbox.pack_start(self.term, True, True, 0)
         self.vbox.show_all()
 
-    def head(self):
-        return self.hbox
+        self.cwd = "~"
 
-    def body(self):
+    def on_head(self):
+        return self.head
+
+    def on_body(self):
         return self.vbox
 
-    def focus(self):
+    def on_focus(self):
         self.term.grab_focus()
 
     def _extra_menu(self, cfg_menu, parent=None):
         if cfg_menu["__NAME__"] != "menu":
             return
 
-        # new menu-item, add this to parent
+        # new menu-item, add it to parent
         menuitem = Gtk.ImageMenuItem(cfg_menu["__ATTR__"]["name"])
         menuitem.set_always_show_image(True)
 
@@ -110,7 +95,6 @@ class SshTab(AbsTab):
                 item = Gtk.CheckMenuItem(attr["name"]);
 
                 expect = Expect.new_from_dict(cfg_item["__ATTR__"], item)
-
                 if attr.has_key("check") and attr["check"] == "true":
                     item.set_active(True)
                     self.term.expect[expect.hint] = expect
@@ -127,7 +111,7 @@ class SshTab(AbsTab):
             return
         self.term.expect[expect.hint] = expect
 
-    def open(self, cfg):
+    def do_open(self, cfg):
         self.cfg = cfg
 
         # 处理__EXTRA__
@@ -151,7 +135,7 @@ class SshTab(AbsTab):
         self.term.feed("connecting ... " + cfg["host"] + ":" + cfg["port"] + "\r\n")
         self.term.feed("\n")
 
-        self.label.set_text("  " + cfg["name"] + " ")
+        self.head.set_title("  " + cfg["name"] + " ")
         cmd = ['/usr/bin/ssh', cfg["user"] + "@" + cfg["host"], "-p", cfg["port"]]
 
         self.childpid = self.term.RUN(cmd)
@@ -159,7 +143,7 @@ class SshTab(AbsTab):
         if self.childpid != None:
             self.term.connect("child-exited", self.__on_child_exited)
 
-    def close(self):
+    def do_close(self):
         if self.childpid > 0:
             os.kill(self.childpid, signal.SIGKILL)
             self.childpid = 0
@@ -169,16 +153,27 @@ class SshTab(AbsTab):
 
     def __on_child_exited(self, widget, stat):
         self.childpid = 0
-        self.close()
+        self.do_close()
 
     def __on_clone_clicked(self, widget, data=None):
         self.frame.run(self.cfg)
 
     def __on_close_clicked(self, widget, data=None):
-        self.close()
+        self.do_close()
 
     def __on_execute_clicked(self, widget, val):
-        self.frame.execute(val)
+        uri = val
+        if uri.find("#URI#") != -1:
+            s = "sftp://#USER#:#PASS#@#HOST#:#PORT##CWD#"
+            uri = uri.replace("#URI#", s)
+
+        uri = uri.replace("#USER#", self.cfg["user"])
+        uri = uri.replace("#PASS#", self.cfg["pass"])
+        uri = uri.replace("#HOST#", self.cfg["host"])
+        uri = uri.replace("#PORT#", self.cfg["port"])
+        uri = uri.replace("#CWD#",  self.cwd)
+
+        Misc.execute(uri)
 
     def __on_menu_input_clicked(self, widget):
         attr = getattr(widget, "__ATTR__")
@@ -197,3 +192,16 @@ class SshTab(AbsTab):
             self.term.expect[expect.hint] = expect
         else:
             del self.term.expect[expect.hint]
+
+    def __on_title_changed(self, title):
+        idx = title.find(":")
+        if idx != -1:
+            self.cwd = title[idx+1:].strip()
+
+        if self.cwd.startswith("~"):
+            prefix = "/root"
+            if self.cfg["user"] != "root":
+                prefix = "/home/" + self.cfg["user"] + "/"
+            self.cwd = prefix + self.cwd[1:]
+
+        print self.cwd
