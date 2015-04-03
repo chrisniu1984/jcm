@@ -31,12 +31,20 @@ class TabHead(Gtk.HBox):
 
         # icon
         if img != None and len(img) != 0:
-            self.img = self.frame.load_img(img, MENU_SIZE);
-            self.pack_start(self.img, False, False, 0)
+            self.icon = Gtk.Button()
+            self.icon.set_image(self.frame.load_img(img, MENU_SIZE))
+            self.pack_start(self.icon, False, False, 0)
 
         # title
         self.label = Gtk.Label(title)
         self.pack_start(self.label, False, False, 0)
+
+        # change title
+        self.entry = Gtk.Entry();
+        self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        self.entry.connect('key-press-event', self.__on_entry_key_press)
+        self.entry.set_has_frame(False)
+        self.pack_start(self.entry, False, False, 0);
 
         # clone button
         if clone:
@@ -53,26 +61,47 @@ class TabHead(Gtk.HBox):
             self.pack_start(self.close, False, False, 0);
 
         self.show_all()
+        self.entry.hide()
+
+    def show_entry(self):
+        if self.entry.is_visible() == False:
+            self.entry.set_text(self.label.get_text().strip())
+            self.entry.show()
+            self.label.hide()
+            self.entry.grab_focus();
+
+    def __on_entry_key_press(self, widget, event):
+        if event.keyval == Gdk.KEY_Return:
+            self.entry.hide()
+            self.label.set_text(" " + self.entry.get_text() + " ")
+            self.label.show()
+            return True
+
+        elif event.keyval == Gdk.KEY_Escape:
+            self.entry.hide()
+            self.label.show()
+            return True
+
+        return False
 
     def set_clone_clicked(self, cb):
-        self.clone.connect("clicked", cb)
+        if self.clone != None:
+            self.clone.connect("clicked", cb)
 
     def set_close_clicked(self, cb):
-        self.close.connect("clicked", cb)
+        if self.close != None:
+            self.close.connect("clicked", cb)
 
     def set_title(self, title):
         self.label.set_text(title)
 
 class AbsTab:
-    # 返回None说明是自动加载的Tab控件
-    @staticmethod
-    def get_type():abstract
     def __init__(self, frame):abstract
-    def on_head(self):abstract # 获取tab头控件
-    def on_body(self):abstract # 获取tab内容控件
+    def HEAD(self):abstract # 获取tab头控件
+    def BODY(self):abstract # 获取tab内容控件
     def on_focus(self):abstract
-    def do_open(self, cfg):abstract
-    def do_close(self):abstract # return: True 已正常关闭，False此Tab不支持关闭
+    def on_open(self, cfg):abstract
+    def on_close(self):abstract # return: True 已正常关闭，False此Tab不支持关闭
 
 class Frame:
     def __init__(self, title, version, cwd):
@@ -161,19 +190,12 @@ class Frame:
             clazz = getattr(mod, name)
 
             # 获得插件类型
-            t = clazz.get_type()
-
-            # type != None 为协议类型插件，需要时再创建此类对象。
-            if t != None:
-                if self.mod.has_key(t):
-                    print "Type Conflict: %s: %s and %s" % (t, str(clazz), str(self.mod[t]))
-                    continue;
-                self.mod[t] = clazz
-            # type == None的插件是自动加载插件。
-            else:
+            if name.startswith("__"):
                 tab = clazz(self)
                 self.add_tab(tab)
-                tab.do_open(None)
+                tab.on_open(None)
+            else:
+                self.mod[name] = clazz
 
     def loop(self):
         self.window.show_all()
@@ -183,8 +205,8 @@ class Frame:
         if isinstance(tab, AbsTab) == False:
             return -1
 
-        ret = self.notebook.append_page(tab.on_body(), tab.on_head())
-        self.notebook.set_tab_reorderable(tab.on_body(), reorderable)
+        ret = self.notebook.append_page(tab.BODY(), tab.HEAD())
+        self.notebook.set_tab_reorderable(tab.BODY(), reorderable)
         self.notebook.show_all()
         self.window.show_all()
 
@@ -197,7 +219,7 @@ class Frame:
         return ret
     
     def del_tab(self, tab):
-        n = self.notebook.page_num(tab.on_body())
+        n = self.notebook.page_num(tab.BODY())
         if n != -1:
             self.notebook.remove_page(n)
     
@@ -226,7 +248,7 @@ class Frame:
         while i < num:
             page = self.notebook.get_nth_page(i)
             tab = getattr(page, "tab")
-            if tab.do_close() == True:
+            if tab.on_close() == True:
                 num = self.notebook.get_n_pages()
                 i = 0
             else:
@@ -260,7 +282,8 @@ class Frame:
                     num = 0;
                 self.notebook.set_current_page(num)
                 return True
-            if event.keyval == Gdk.KEY_Left or event.keyval == Gdk.KEY_Page_Up:
+
+            elif event.keyval == Gdk.KEY_Left or event.keyval == Gdk.KEY_Page_Up:
                 num = self.notebook.get_current_page() - 1
                 count = self.notebook.get_n_pages()
                 if num < 0:
@@ -268,11 +291,19 @@ class Frame:
                 self.notebook.set_current_page(num)
                 return True
 
+            elif event.keyval == Gdk.KEY_Up:
+                num = self.notebook.get_current_page()
+                page = self.notebook.get_nth_page(num)
+                tab = getattr(page, "tab")
+                if tab != None:
+                    tab.HEAD().show_entry()
+                return True
+
         # 任何按键输入后，焦点切换到指定控件。
         num = self.notebook.get_current_page()
         page = self.notebook.get_nth_page(num)
         tab = getattr(page, "tab")
-        if tab != None:
+        if tab != None and tab.HEAD().entry.is_visible() == False:
             tab.on_focus()
         return False
 
@@ -281,6 +312,6 @@ class Frame:
         if self.mod.has_key(t):
             obj = self.mod[t](self)
             self.add_tab(obj)
-            obj.do_open(cfg)
+            obj.on_open(cfg)
         else:
             print "[ER] type %s is not found" % t

@@ -10,11 +10,7 @@ from NIU import Frame, AbsTab, TabHead, Term, Expect, Misc
 
 MENU_SIZE = 16
 
-class SshTab(AbsTab):
-    @staticmethod
-    def get_type():
-        return "ssh";
-
+class ssh(AbsTab):
     def __init__(self, frame):
         self.frame = frame
         self.cfg = None
@@ -41,10 +37,10 @@ class SshTab(AbsTab):
 
         self.cwd = "~"
 
-    def on_head(self):
+    def HEAD(self):
         return self.head
 
-    def on_body(self):
+    def BODY(self):
         return self.vbox
 
     def on_focus(self):
@@ -111,7 +107,7 @@ class SshTab(AbsTab):
             return
         self.term.expect[expect.hint] = expect
 
-    def do_open(self, cfg):
+    def on_open(self, cfg):
         self.cfg = cfg
 
         # 处理__EXTRA__
@@ -143,7 +139,7 @@ class SshTab(AbsTab):
         if self.childpid != None:
             self.term.connect("child-exited", self.__on_child_exited)
 
-    def do_close(self):
+    def on_close(self):
         if self.childpid > 0:
             os.kill(self.childpid, signal.SIGKILL)
             self.childpid = 0
@@ -153,13 +149,13 @@ class SshTab(AbsTab):
 
     def __on_child_exited(self, widget, stat):
         self.childpid = 0
-        self.do_close()
+        self.on_close()
 
     def __on_clone_clicked(self, widget, data=None):
         self.frame.run(self.cfg)
 
     def __on_close_clicked(self, widget, data=None):
-        self.do_close()
+        self.on_close()
 
     def __on_execute_clicked(self, widget, val):
         uri = val
@@ -203,5 +199,3 @@ class SshTab(AbsTab):
             if self.cfg["user"] != "root":
                 prefix = "/home/" + self.cfg["user"] + "/"
             self.cwd = prefix + self.cwd[1:]
-
-        print self.cwd

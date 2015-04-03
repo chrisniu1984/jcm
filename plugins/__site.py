@@ -27,12 +27,7 @@ COL_PIXBUF = 0
 COL_NAME   = 1
 COL_CFG    = 2
 
-class SiteTab(AbsTab):
-    @staticmethod
-    def get_type():
-        # None 是自动加载插件。
-        return None
-
+class __site(AbsTab):
     def __init__(self, frame):
         self.frame = frame
         self.config = frame.path_config + "/" + SITEFILE
@@ -53,19 +48,19 @@ class SiteTab(AbsTab):
         self._treestore()
         self._treeview()
 
-    def on_head(self):
+    def HEAD(self):
         return self.head
 
-    def on_body(self):
+    def BODY(self):
         return self.vbox
 
     def on_focus(self):
         self.treeview.grab_focus();
 
-    def do_open(self, cfg):
+    def on_open(self, cfg):
         pass
 
-    def do_close(self):
+    def on_close(self):
         return False
 
     def _toolbar(self):

@@ -10,11 +10,7 @@ from gi.repository.GdkPixbuf import Pixbuf
 
 from NIU import Frame, AbsTab, TabHead, Term
 
-class ShellTab(AbsTab):
-    @staticmethod
-    def get_type():
-        return "shell";
-
+class shell(AbsTab):
     def __init__(self, frame):
         self.frame = frame
         self.cfg = None
@@ -30,16 +26,16 @@ class ShellTab(AbsTab):
         self.term.connect("child-exited", self.__on_child_exited)
         self.term.show_all()
 
-    def on_head(self):
+    def HEAD(self):
         return self.head
 
-    def on_body(self):
+    def BODY(self):
         return self.term
 
     def on_focus(self):
         self.term.grab_focus()
 
-    def do_open(self, cfg):
+    def on_open(self, cfg):
         self.cfg = cfg
         cwd = None
         if cfg.has_key("cwd"):
@@ -48,7 +44,7 @@ class ShellTab(AbsTab):
         cmd = ['/bin/bash']
         self.childpid = self.term.RUN(cmd, cwd)
 
-    def do_close(self):
+    def on_close(self):
         if self.childpid > 0:
             os.kill(self.childpid, signal.SIGKILL)
             self.childpid = 0
@@ -58,7 +54,7 @@ class ShellTab(AbsTab):
 
     def __on_child_exited(self, widget, stat):
         self.childpid = 0
-        self.do_close()
+        self.on_close()
 
     def __on_clone_clicked(self, widget, data=None):
         # get my cwd
@@ -70,7 +66,7 @@ class ShellTab(AbsTab):
         self.frame.run(cfg)
 
     def __on_close_clicked(self, widget, data=None):
-        self.do_close()
+        self.on_close()
 
     def __on_title_changed(self, title):
         self.head.set_title(title);
