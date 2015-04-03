@@ -31,8 +31,7 @@ class TabHead(Gtk.HBox):
 
         # icon
         if img != None and len(img) != 0:
-            self.icon = Gtk.Button()
-            self.icon.set_image(self.frame.load_img(img, MENU_SIZE))
+            self.icon = self.frame.load_img(img, MENU_SIZE)
             self.pack_start(self.icon, False, False, 0)
 
         # title
