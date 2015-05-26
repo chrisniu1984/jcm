@@ -17,7 +17,7 @@ class shell(AbsTab):
 
         # head
         self.head = TabHead(frame, img="shell.png")
-        self.head.set_clone_clicked(self.__on_clone_clicked)
+        #self.head.set_clone_clicked(self.__on_clone_clicked)
         self.head.set_close_clicked(self.__on_close_clicked)
 
         # body
@@ -56,14 +56,14 @@ class shell(AbsTab):
         self.childpid = 0
         self.on_close()
 
-    def __on_clone_clicked(self, widget, data=None):
-        # get my cwd
-        pidpath = "/proc/%u/cwd" % (self.childpid)
-        cwd = os.path.realpath(pidpath);
+    #def __on_clone_clicked(self, widget, data=None):
+    #    # get my cwd
+    #    pidpath = "/proc/%u/cwd" % (self.childpid)
+    #    cwd = os.path.realpath(pidpath);
 
-        cfg = copy.copy(self.cfg)
-        cfg["cwd"] = cwd
-        self.frame.run(cfg)
+    #    cfg = copy.copy(self.cfg)
+    #    cfg["cwd"] = cwd
+    #    self.frame.run(cfg)
 
     def __on_close_clicked(self, widget, data=None):
         self.on_close()

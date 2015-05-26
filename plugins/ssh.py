@@ -17,7 +17,7 @@ class ssh(AbsTab):
 
         # head
         self.head = TabHead(frame, img="ssh.png")
-        self.head.set_clone_clicked(self.__on_clone_clicked)
+        #self.head.set_clone_clicked(self.__on_clone_clicked)
         self.head.set_close_clicked(self.__on_close_clicked)
 
         # body
@@ -35,6 +35,14 @@ class ssh(AbsTab):
         self.vbox.pack_start(self.term, True, True, 0)
         self.vbox.show_all()
 
+        # term
+        self.entry = Gtk.Entry();
+        self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        self.entry.connect('key-press-event', self.__on_entry_key_press)
+        self.entry.set_has_frame(True)
+        self.vbox.pack_start(self.entry, False, False, 0)
+        self.vbox.show_all()
+
         self.cwd = "~"
 
     def HEAD(self):
@@ -44,7 +52,22 @@ class ssh(AbsTab):
         return self.vbox
 
     def on_focus(self):
-        self.term.grab_focus()
+        if self.entry.is_focus() == False:
+            self.term.grab_focus()
+
+    def __on_entry_key_press(self, widget, event):
+        if event.keyval == Gdk.KEY_Return:
+            self.term.feed_child(self.entry.get_text()+"\n", -1)
+            self.entry.set_text("");
+            return True
+        elif event.keyval == Gdk.KEY_Escape:
+            self.entry.set_text("");
+            return True
+        if (event.state & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK:
+            if event.keyval == Gdk.KEY_c:
+                self.term.feed_child("", -1)
+
+        return False
 
     def _extra_menu(self, cfg_menu, parent=None):
         if cfg_menu["__NAME__"] != "menu":
@@ -151,8 +174,8 @@ class ssh(AbsTab):
         self.childpid = 0
         self.on_close()
 
-    def __on_clone_clicked(self, widget, data=None):
-        self.frame.run(self.cfg)
+    #def __on_clone_clicked(self, widget, data=None):
+    #    self.frame.run(self.cfg)
 
     def __on_close_clicked(self, widget, data=None):
         self.on_close()

@@ -40,7 +40,8 @@ class __site(AbsTab):
         self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, 24)
 
         # head
-        self.head = TabHead(frame, title="Site List", clone=False, close=False)
+        #self.head = TabHead(frame, title="Site List", clone=False, close=False)
+        self.head = TabHead(frame, title="Site List", close=False)
 
         # body
         self.vbox = Gtk.VBox(False, 0)

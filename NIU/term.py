@@ -22,6 +22,10 @@ class Term(Vte.Terminal):
         # CB
         self.call_title_changed = None
 
+        # shortcut
+        self.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        self.connect('key-press-event', self.__on_key_press)
+
     def SET_TITLE_CHANGED(self, cb):
         self.call_title_changed = cb
 
@@ -78,3 +82,17 @@ class Term(Vte.Terminal):
     def do_window_title_changed(self):
         if self.call_title_changed != None:
             self.call_title_changed(self.get_window_title())
+
+    def __on_key_press(self, widget, event):
+        # 快捷键 Ctrl + Shift + ???
+        if (event.state & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK and \
+           (event.state & Gdk.ModifierType.SHIFT_MASK) == Gdk.ModifierType.SHIFT_MASK:
+            if event.keyval == Gdk.KEY_C:
+                self.copy_clipboard()
+                return True
+
+            elif event.keyval == Gdk.KEY_V:
+                self.paste_clipboard()
+                return True
+
+        return False

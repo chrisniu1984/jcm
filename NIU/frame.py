@@ -18,13 +18,14 @@ PATH_CONFIG=".jcm"
 ICON_APP="app.png"
 
 ICON_CLOSEALL = "close_all.png"
-ICON_CLONE="clone.png"
+#ICON_CLONE="clone.png"
 ICON_CLOSE="close.png"
 
 MENU_SIZE = 16
 
 class TabHead(Gtk.HBox):
-    def __init__(self, frame=None, title="", img=None, clone=True, close=True):
+    #def __init__(self, frame=None, title="", img=None, clone=True, close=True):
+    def __init__(self, frame=None, title="", img=None, close=True):
         Gtk.HBox.__init__(self, False, 0)
 
         self.frame = frame
@@ -38,7 +39,7 @@ class TabHead(Gtk.HBox):
         self.label = Gtk.Label(title)
         self.pack_start(self.label, False, False, 0)
 
-        # change title
+        # entry for change title
         self.entry = Gtk.Entry();
         self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.entry.connect('key-press-event', self.__on_entry_key_press)
@@ -46,11 +47,11 @@ class TabHead(Gtk.HBox):
         self.pack_start(self.entry, False, False, 0);
 
         # clone button
-        if clone:
-            self.clone = Gtk.Button()
-            self.clone.set_image(self.frame.load_img(ICON_CLONE, MENU_SIZE))
-            self.clone.set_relief(Gtk.ReliefStyle.NONE)
-            self.pack_start(self.clone, False, False, 0);
+        #if clone:
+        #    self.clone = Gtk.Button()
+        #    self.clone.set_image(self.frame.load_img(ICON_CLONE, MENU_SIZE))
+        #    self.clone.set_relief(Gtk.ReliefStyle.NONE)
+        #    self.pack_start(self.clone, False, False, 0);
 
         # close button
         if close:
@@ -83,9 +84,9 @@ class TabHead(Gtk.HBox):
 
         return False
 
-    def set_clone_clicked(self, cb):
-        if self.clone != None:
-            self.clone.connect("clicked", cb)
+    #def set_clone_clicked(self, cb):
+    #    if self.clone != None:
+    #        self.clone.connect("clicked", cb)
 
     def set_close_clicked(self, cb):
         if self.close != None:
@@ -162,6 +163,7 @@ class Frame:
         self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
+        #self.header.pack_end(self.notebook)
         self.window.add(self.notebook)
 
     def load_pixbuf(self, name, size=None):
