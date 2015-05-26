@@ -32,10 +32,12 @@ class ssh(AbsTab):
         self.term = Term()
         self.term.SET_TITLE_CHANGED(self.__on_title_changed);
         self.term.connect("child-exited", self.__on_child_exited)
+        self.term.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        self.term.connect('key-press-event', self.__on_term_key_press)
         self.vbox.pack_start(self.term, True, True, 0)
         self.vbox.show_all()
 
-        # term
+        # entry
         self.entry = Gtk.Entry();
         self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.entry.connect('key-press-event', self.__on_entry_key_press)
@@ -63,10 +65,20 @@ class ssh(AbsTab):
         elif event.keyval == Gdk.KEY_Escape:
             self.entry.set_text("");
             return True
-        if (event.state & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK:
+        if event.state & Gdk.ModifierType.CONTROL_MASK:
             if event.keyval == Gdk.KEY_c:
                 self.term.feed_child("", -1)
+        if event.state & Gdk.ModifierType.SUPER_MASK:
+            if event.keyval == Gdk.KEY_z:
+                self.term.grab_focus();
+                return True
+        return False
 
+    def __on_term_key_press(self, widget, event):
+        if event.state & Gdk.ModifierType.SUPER_MASK:
+            if event.keyval == Gdk.KEY_z:
+                self.entry.grab_focus();
+                return True
         return False
 
     def _extra_menu(self, cfg_menu, parent=None):
