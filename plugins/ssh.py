@@ -62,12 +62,20 @@ class ssh(AbsTab):
             self.term.feed_child(self.entry.get_text()+"\n", -1)
             self.entry.set_text("");
             return True
+
         elif event.keyval == Gdk.KEY_Escape:
             self.entry.set_text("");
             return True
+
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             if event.keyval == Gdk.KEY_c:
                 self.term.feed_child("", -1)
+                return True
+            if event.keyval == Gdk.KEY_Return:
+                self.term.feed_child(self.entry.get_text(), -1)
+                self.entry.set_text("");
+                return True
+
         if event.state & Gdk.ModifierType.SUPER_MASK:
             if event.keyval == Gdk.KEY_z:
                 self.term.grab_focus();
