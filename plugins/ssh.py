@@ -58,15 +58,6 @@ class ssh(AbsTab):
             self.term.grab_focus()
 
     def __on_entry_key_press(self, widget, event):
-        if event.keyval == Gdk.KEY_Return:
-            self.term.feed_child(self.entry.get_text()+"\n", -1)
-            self.entry.set_text("");
-            return True
-
-        elif event.keyval == Gdk.KEY_Escape:
-            self.entry.set_text("");
-            return True
-
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             if event.keyval == Gdk.KEY_c:
                 self.term.feed_child("", -1)
@@ -80,6 +71,16 @@ class ssh(AbsTab):
             if event.keyval == Gdk.KEY_z:
                 self.term.grab_focus();
                 return True
+
+        if event.keyval == Gdk.KEY_Return:
+            self.term.feed_child(self.entry.get_text()+"\n", -1)
+            self.entry.set_text("");
+            return True
+
+        elif event.keyval == Gdk.KEY_Escape:
+            self.entry.set_text("");
+            return True
+
         return False
 
     def __on_term_key_press(self, widget, event):
