@@ -1,0 +1,15 @@
+post_upgrade()
+{
+    rm -f /usr/share/applications/jcm.desktop
+    desktop-file-install /opt/jcm/jcm.desktop
+}
+
+post_install()
+{
+    post_upgrade
+}
+
+post_remove()
+{
+    rm -f /usr/share/applications/jcm.desktop
+}

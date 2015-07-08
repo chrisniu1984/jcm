@@ -1,0 +1,24 @@
+pkgname=jcm
+pkgver=1.2
+pkgrel=1
+pkgdesc="Juniu Connect Manager"
+arch=('any')
+url="https://bitgithub.com/X0rg/dmg2dir"
+license=('custom')
+depends=('python2' 'python2-gobject' 'bash' 'openssh')
+install=install
+
+package() {
+    cd ${srcdir}
+
+    DEST="$pkgdir/opt/$pkgname"
+
+    install -d ${DEST}
+    echo ${pkgver} > ${DEST}/version
+    cd src
+    install -m 0755 main.py ${DEST}
+    install jcm.desktop ${DEST}
+    rm -f `find ./ -name "*.pyc"`
+    cp -r NIU plugins res ${DEST}
+}
+
