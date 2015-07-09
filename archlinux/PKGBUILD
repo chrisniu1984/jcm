@@ -14,8 +14,7 @@ package() {
     DEST="$pkgdir/opt/$pkgname"
 
     install -d ${DEST}
-    echo ${pkgver} > ${DEST}/version
-    cd src
+    echo "${pkgver}.${pkgrel}" > ${DEST}/version
     install -m 0755 main.py ${DEST}
     install jcm.desktop ${DEST}
     rm -f `find ./ -name "*.pyc"`
