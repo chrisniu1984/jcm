@@ -119,19 +119,17 @@ class Frame:
         self.window = Gtk.ApplicationWindow(Gtk.WindowType.TOPLEVEL)
         self.window.set_icon_from_file(self.path_res + "/" + ICON_APP)
         self.window.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        self.window.set_default_size(500, 400)
+        #self.window.set_default_size(500, 400)
         #self.window.set_decorated(False)
         self.window.maximize()
         self.window.set_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.window.connect('key-press-event', self._on_window_key_press)
         self.window.connect('delete-event',self._on_window_delete_event)
 
-        self._header_bar(title + " " + version)
-        self.window.set_titlebar(self.header)
+        self.__init_header_bar(title + " " + version)
+        self.__init_notebook()
 
-        self._notebook()
-
-    def _header_bar(self, title):
+    def __init_header_bar(self, title):
         self.header = Gtk.HeaderBar()
         self.header.set_title(title)
         self.header.set_show_close_button(True)
@@ -152,16 +150,16 @@ class Frame:
         self.header.pack_start(item)
 
         self.header.show_all()
+        self.window.set_titlebar(self.header)
 
-    def _notebook(self):
+    def __init_notebook(self):
         self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
-        #self.header.pack_end(self.notebook)
         self.notebook.connect("switch-page", self.__on_notebook_switched)
         self.window.add(self.notebook)
 
-    def __header_box(self, page_num):
+    def __update_header_bar(self, page_num):
         if page_num < 0:
             return
         page = self.notebook.get_nth_page(page_num)
@@ -181,7 +179,7 @@ class Frame:
             self.header_box.show_all()
 
     def __on_notebook_switched(self, notebook, xxx, page_num):
-        self.__header_box(page_num)
+        self.__update_header_bar(page_num)
 
     def load_pixbuf(self, name, size=None):
         fname = self.path_res + "/" + name
@@ -236,7 +234,7 @@ class Frame:
         setattr(page, "tab", tab)
 
         if focus:
-            self.__header_box(ret)
+            self.__update_header_bar(ret)
             self.notebook.set_current_page(ret)
 
         return ret

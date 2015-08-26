@@ -8,7 +8,9 @@ import copy
 from gi.repository import Gdk, Gtk, GObject, Vte
 from gi.repository.GdkPixbuf import Pixbuf
 
-from NIU import Frame, AbsTab, TabHead, Term
+from NIU import Frame, AbsTab, TabHead, Term, Expect, Misc
+
+ICON_FMAN="fman.png"
 
 class shell(AbsTab):
     def __init__(self, frame):
@@ -25,11 +27,24 @@ class shell(AbsTab):
         self.term.connect("child-exited", self.__on_child_exited)
         self.term.show_all()
 
+        #misc
+        self.cwd = "~"
+
+        # header bar
+        item = Gtk.Button()
+        item.set_relief(Gtk.ReliefStyle.NONE)
+        item.set_image(self.frame.load_icon(ICON_FMAN))
+        item.connect("clicked", self.__on_fman_clicked)
+        self.hdr_bar = item
+
     def HEAD(self):
         return self.head
 
     def BODY(self):
         return self.term
+
+    def TOOL(self):
+        return self.hdr_bar
 
     def on_focus(self):
         self.term.grab_focus()
@@ -60,3 +75,7 @@ class shell(AbsTab):
 
     def __on_title_changed(self, title):
         self.head.set_title(title);
+
+    def __on_fman_clicked(self, widget):
+        Misc.execute("xdg-open .")
+
