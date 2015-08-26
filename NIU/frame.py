@@ -18,13 +18,11 @@ PATH_CONFIG=".jcm"
 ICON_APP="app.png"
 
 ICON_CLOSEALL = "close_all.png"
-#ICON_CLONE="clone.png"
 ICON_CLOSE="close.png"
 
-MENU_SIZE = 16
+MENU_SIZE = 24
 
 class TabHead(Gtk.HBox):
-    #def __init__(self, frame=None, title="", img=None, clone=True, close=True):
     def __init__(self, frame=None, title="", img=None, close=True):
         Gtk.HBox.__init__(self, False, 0)
 
@@ -45,13 +43,6 @@ class TabHead(Gtk.HBox):
         self.entry.connect('key-press-event', self.__on_entry_key_press)
         self.entry.set_has_frame(False)
         self.pack_start(self.entry, False, False, 0);
-
-        # clone button
-        #if clone:
-        #    self.clone = Gtk.Button()
-        #    self.clone.set_image(self.frame.load_img(ICON_CLONE, MENU_SIZE))
-        #    self.clone.set_relief(Gtk.ReliefStyle.NONE)
-        #    self.pack_start(self.clone, False, False, 0);
 
         # close button
         if close:
@@ -84,10 +75,6 @@ class TabHead(Gtk.HBox):
 
         return False
 
-    #def set_clone_clicked(self, cb):
-    #    if self.clone != None:
-    #        self.clone.connect("clicked", cb)
-
     def set_close_clicked(self, cb):
         if self.close != None:
             self.close.connect("clicked", cb)
@@ -99,9 +86,16 @@ class AbsTab:
     def __init__(self, frame):abstract
     def HEAD(self):abstract # 获取tab头控件
     def BODY(self):abstract # 获取tab内容控件
-    def on_focus(self):abstract
+
+    def TOOL(self):
+        return None
+
+    def on_focus(self):
+        pass
+
     def on_open(self, cfg):abstract
-    def on_close(self):abstract # return: True 已正常关闭，False此Tab不支持关闭
+    def on_close(self):
+        return False
 
 class Frame:
     def __init__(self, title, version, cwd):
@@ -144,19 +138,19 @@ class Frame:
 
         # close all tabs
         item = Gtk.Button()
+        #sc = item.get_style_context()
+        #style.bg[Gtk.StateType.PRELIGHT] = style.bg[Gtk.StateType.NORMAL]
+        #item.set_style(style)
         item.set_image(self.load_img("clean.svg", MENU_SIZE));
         item.connect("clicked", self._on_close_all_tabs_clicked)
+        self.header.pack_start(item)
 
-        is_ubuntu = False
-        for s in os.uname():
-            if s.lower().find("ubuntu") != -1:
-                is_ubuntu = True
+        # custom toolbutton for tab
+        item = Gtk.HBox()
+        self.header_box = item
+        self.header_item = None
+        self.header.pack_start(item)
 
-        # 在Ubuntu系统中将'close all tabs'放在右侧
-        if is_ubuntu:
-            self.header.pack_end(item)
-        else:
-            self.header.pack_start(item)
         self.header.show_all()
 
     def _notebook(self):
@@ -164,7 +158,30 @@ class Frame:
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
         #self.header.pack_end(self.notebook)
+        self.notebook.connect("switch-page", self.__on_notebook_switched)
         self.window.add(self.notebook)
+
+    def __header_box(self, page_num):
+        if page_num < 0:
+            return
+        page = self.notebook.get_nth_page(page_num)
+        if not hasattr(page, "tab"):
+            return
+
+        # remove old
+        if self.header_item != None:
+            self.header_box.remove(self.header_item)
+        self.header_item = None
+
+        # add new
+        tab = getattr(page, "tab")
+        self.header_item = tab.TOOL()
+        if self.header_item != None:
+            self.header_box.pack_start(self.header_item, False, False, 0)
+            self.header_box.show_all()
+
+    def __on_notebook_switched(self, notebook, xxx, page_num):
+        self.__header_box(page_num)
 
     def load_pixbuf(self, name, size=None):
         fname = self.path_res + "/" + name
@@ -175,6 +192,10 @@ class Frame:
 
     def load_img(self, name, size=None):
         pixbuf = self.load_pixbuf(name, size)
+        return Gtk.Image.new_from_pixbuf(pixbuf)
+
+    def load_icon(self, name):
+        pixbuf = self.load_pixbuf(name, MENU_SIZE)
         return Gtk.Image.new_from_pixbuf(pixbuf)
     
     def load_plugins(self):
@@ -215,6 +236,7 @@ class Frame:
         setattr(page, "tab", tab)
 
         if focus:
+            self.__header_box(ret)
             self.notebook.set_current_page(ret)
 
         return ret
@@ -254,6 +276,15 @@ class Frame:
                 i = 0
             else:
                 i += 1
+
+    def _on_filezilla_clicked(self, widget, data=None):
+        i = self.notebook.get_current_page();
+        page = self.notebook.get_nth_page(i)
+        tab = getattr(page, "tab")
+        if hasattr(tab, "on_filezilla"):
+            tab.on_filezilla()
+        else:
+            print "no on_filezilla"
 
     def _on_close_all_tabs_clicked(self, widget, data=None):
         dlg = Gtk.MessageDialog(self.window,

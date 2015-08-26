@@ -43,9 +43,10 @@ class __site(AbsTab):
         #self.head = TabHead(frame, title="Site List", clone=False, close=False)
         self.head = TabHead(frame, title="Site List", close=False)
 
+        self.__header_item()
+
         # body
         self.vbox = Gtk.VBox(False, 0)
-        self._toolbar()
         self._treestore()
         self._treeview()
 
@@ -55,32 +56,32 @@ class __site(AbsTab):
     def BODY(self):
         return self.vbox
 
+    def TOOL(self):
+        return self.hdr_bar
+
     def on_focus(self):
         self.treeview.grab_focus();
 
     def on_open(self, cfg):
         pass
 
-    def on_close(self):
-        return False
-
-    def _toolbar(self):
-        self.toolbar = Gtk.Toolbar()
-        self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
-        self.vbox.pack_start(self.toolbar, False, False, 0)
+    def __header_item(self):
+        self.hdr_bar = Gtk.HBox()
 
         # reload config
-        item = Gtk.ToolButton()
-        item.set_icon_widget(self.frame.load_img(IMG_RELOAD))
+        item = Gtk.Button()
+        item.set_relief(Gtk.ReliefStyle.NONE)
+        item.set_image(self.frame.load_icon(IMG_RELOAD))
         item.connect("clicked", self._on_reload_clicked)
-        self.toolbar.insert(item, -1)
+        self.hdr_bar.pack_start(item, False, False, 0)
 
         # edit config
-        item = Gtk.ToolButton()
-        item.set_label("Edit Config")
-        item.set_icon_widget(self.frame.load_img(IMG_EDIT))
+        item = Gtk.Button()
+        item.set_relief(Gtk.ReliefStyle.NONE)
+        #item.set_label("Edit Config")
+        item.set_image(self.frame.load_icon(IMG_EDIT))
         item.connect("clicked", self._on_edit_clicked)
-        self.toolbar.insert(item, -1)
+        self.hdr_bar.pack_start(item, False, False, 0)
 
     def _on_reload_clicked(self, widget, data=None):
         if os.path.exists(self.config) == False:

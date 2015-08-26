@@ -16,17 +16,12 @@ def execute(cmd, cwd=""):
         # 孙子进程运行app
         if os.fork() == 0:
             env = os.environ
-
             env["PWD"] = cwd
-
-            # 在ubuntu系统中，启用UBUNTU_MENUPROXY
-            if env.has_key("UBUNTU_MENUPROXY"):
-                del env["UBUNTU_MENUPROXY"]
-
             os.execvpe(argv[0], argv, env)
         # 子进程退出，让孙子进程被init领养
         else:
             sys.exit(0)
+
     # 父进程等一下子进程
     elif pid > 0:
         os.waitpid(pid, 0)

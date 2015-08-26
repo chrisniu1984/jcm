@@ -33,15 +33,13 @@ class Term(Vte.Terminal):
         if cwd == None:
             cwd = os.getcwd()
 
-        if hasattr(self, "spawn_sync"):
-            ret, child_pid = self.spawn_sync(Vte.PtyFlags.DEFAULT, cwd,
-                                cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)
-        elif hasattr(self, "fork_command_full"):
-            ret, child_pid = self.fork_command_full(Vte.PtyFlags.DEFAULT, cwd,
-                                cmd, None, GObject.SPAWN_SEARCH_PATH, None, None)
-    
+        ret, child_pid = self.spawn_sync(Vte.PtyFlags.DEFAULT, cwd,
+                                         cmd, None, GObject.SPAWN_SEARCH_PATH,
+                                         None, None)
+
         if ret == False:
             return None
+
         return child_pid
 
     def ADD_EXPECT(self, hint, val, once=False, checkMenuItem=None):

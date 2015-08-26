@@ -8,7 +8,8 @@ from gi.repository.GdkPixbuf import Pixbuf
 
 from NIU import Frame, AbsTab, TabHead, Term, Expect, Misc
 
-MENU_SIZE = 16
+ICON_FILEZILLA="filezilla.png"
+MENU_SIZE=16
 
 class ssh(AbsTab):
     def __init__(self, frame):
@@ -17,7 +18,6 @@ class ssh(AbsTab):
 
         # head
         self.head = TabHead(frame, img="ssh.png")
-        #self.head.set_clone_clicked(self.__on_clone_clicked)
         self.head.set_close_clicked(self.__on_close_clicked)
 
         # body
@@ -38,14 +38,26 @@ class ssh(AbsTab):
         self.vbox.show_all()
 
         # entry
-        self.entry = Gtk.Entry();
-        self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
-        self.entry.connect('key-press-event', self.__on_entry_key_press)
-        self.entry.set_has_frame(True)
-        self.vbox.pack_start(self.entry, False, False, 0)
-        self.vbox.show_all()
+        #self.entry = Gtk.Entry();
+        #self.entry.set_events(Gdk.EventMask.KEY_PRESS_MASK)
+        #self.entry.connect('key-press-event', self.__on_entry_key_press)
+        #self.entry.set_has_frame(True)
+        #self.vbox.pack_start(self.entry, False, False, 0)
+        #self.vbox.show_all()
 
-        self.cwd = "~"
+        # header items
+        # filezilla
+        if os.path.exists('/usr/bin/filezilla'):
+            item = Gtk.Button()
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            #style = item.get_style().copy()
+            #item.bg[Gtk.StateFlags.PRELIGHT] = item.bg[Gtk.StateFlags.NORMAL]
+            #item.set_style(style)
+            item.set_image(self.frame.load_icon(ICON_FILEZILLA))
+            item.connect("clicked", self.__on_filezilla_clicked)
+            self.hdr_bar = item
+
+        self.cwd = ""
 
     def HEAD(self):
         return self.head
@@ -53,35 +65,39 @@ class ssh(AbsTab):
     def BODY(self):
         return self.vbox
 
+    def TOOL(self):
+        return self.hdr_bar
+
     def on_focus(self):
-        if self.entry.is_focus() == False:
-            self.term.grab_focus()
+        #if self.entry.is_focus() == False:
+        #    self.term.grab_focus()
+        self.term.grab_focus()
 
-    def __on_entry_key_press(self, widget, event):
-        if event.state & Gdk.ModifierType.CONTROL_MASK:
-            if event.keyval == Gdk.KEY_c:
-                self.term.feed_child("", -1)
-                return True
-            if event.keyval == Gdk.KEY_Return:
-                self.term.feed_child(self.entry.get_text(), -1)
-                self.entry.set_text("");
-                return True
+    #def __on_entry_key_press(self, widget, event):
+    #    if event.state & Gdk.ModifierType.CONTROL_MASK:
+    #        if event.keyval == Gdk.KEY_c:
+    #            self.term.feed_child("", -1)
+    #            return True
+    #        if event.keyval == Gdk.KEY_Return:
+    #            self.term.feed_child(self.entry.get_text(), -1)
+    #            self.entry.set_text("");
+    #            return True
 
-        if event.state & Gdk.ModifierType.SUPER_MASK:
-            if event.keyval == Gdk.KEY_z:
-                self.term.grab_focus();
-                return True
+    #    if event.state & Gdk.ModifierType.SUPER_MASK:
+    #        if event.keyval == Gdk.KEY_z:
+    #            self.term.grab_focus();
+    #            return True
 
-        if event.keyval == Gdk.KEY_Return:
-            self.term.feed_child(self.entry.get_text()+"\n", -1)
-            self.entry.set_text("");
-            return True
+    #    if event.keyval == Gdk.KEY_Return:
+    #        self.term.feed_child(self.entry.get_text()+"\n", -1)
+    #        self.entry.set_text("");
+    #        return True
 
-        elif event.keyval == Gdk.KEY_Escape:
-            self.entry.set_text("");
-            return True
+    #    elif event.keyval == Gdk.KEY_Escape:
+    #        self.entry.set_text("");
+    #        return True
 
-        return False
+    #    return False
 
     def __on_term_key_press(self, widget, event):
         if event.state & Gdk.ModifierType.SUPER_MASK:
@@ -195,9 +211,6 @@ class ssh(AbsTab):
         self.childpid = 0
         self.on_close()
 
-    #def __on_clone_clicked(self, widget, data=None):
-    #    self.frame.run(self.cfg)
-
     def __on_close_clicked(self, widget, data=None):
         self.on_close()
 
@@ -213,6 +226,15 @@ class ssh(AbsTab):
         uri = uri.replace("#PORT#", self.cfg["port"])
         uri = uri.replace("#CWD#",  self.cwd)
 
+        Misc.execute(uri)
+
+    def __on_filezilla_clicked(self, widget):
+        uri = "filezilla sftp://#USER#:#PASS#@#HOST#:#PORT##CWD#"
+        uri = uri.replace("#USER#", self.cfg["user"])
+        uri = uri.replace("#PASS#", self.cfg["pass"])
+        uri = uri.replace("#HOST#", self.cfg["host"])
+        uri = uri.replace("#PORT#", self.cfg["port"])
+        uri = uri.replace("#CWD#",  self.cwd)
         Misc.execute(uri)
 
     def __on_menu_input_clicked(self, widget):
@@ -238,8 +260,17 @@ class ssh(AbsTab):
         if idx != -1:
             self.cwd = title[idx+1:].strip()
 
-        if self.cwd.startswith("~"):
-            prefix = "/root"
-            if self.cfg["user"] != "root":
-                prefix = "/home/" + self.cfg["user"] + "/"
-            self.cwd = prefix + self.cwd[1:]
+        if self.cwd == "~" or self.cwd == "~/":
+            self.cwd = ""
+        elif self.cwd.startswith("~/"):
+            self.cwd = self.cwd[2:]
+
+            if self.cfg.has_key("home"):
+                self.cwd = self.cfg["home"] + "/" + self.cwd
+            elif self.cfg.has_key("user"):
+                if self.cfg["user"] == "root":
+                    self.cwd = "/root/" + self.cwd
+                else:
+                    self.cwd = "/home/" + self.cfg["user"] + "/"
+            else:
+                self.cwd = ""

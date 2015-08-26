@@ -19,4 +19,3 @@ class Expect:
             once = True
     
         return Expect(hint=hint, val=val, once=once, checkMenuItem=checkMenuItem)
-
