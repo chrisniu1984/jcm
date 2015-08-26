@@ -1,6 +1,6 @@
 pkgname=jcm
 pkgver=1.2
-pkgrel=3
+pkgrel=4
 pkgdesc="Juniu Connect Manager"
 arch=('any')
 url="https://bitgithub.com/X0rg/dmg2dir"
