@@ -12,8 +12,7 @@ class Term(Vte.Terminal):
         self.set_scrollback_lines(1024)
         self.set_scroll_on_keystroke(True)
 
-        if hasattr(self, "set_rewrap_on_resize"):
-            self.set_rewrap_on_resize(True)
+        self.set_rewrap_on_resize(True)
     
         # EXPECT
         self.last_text = ""

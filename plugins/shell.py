@@ -27,34 +27,38 @@ class shell(AbsTab):
         self.term.connect("child-exited", self.__on_child_exited)
         self.term.show_all()
 
-        #misc
-        self.cwd = "~"
-
-        # header bar
-        item = Gtk.Button()
-        item.set_relief(Gtk.ReliefStyle.NONE)
-        item.set_image(self.frame.load_icon(ICON_FMAN))
-        item.connect("clicked", self.__on_fman_clicked)
-        self.hdr_bar = item
-
     def HEAD(self):
         return self.head
 
     def BODY(self):
         return self.term
 
-    def TOOL(self):
-        return self.hdr_bar
+    def HBAR(self):
+        if not hasattr(self, "hbar"):
+            item = Gtk.Button()
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon(ICON_FMAN))
+            item.connect("clicked", self.__on_fman_clicked)
+            self.hbar = item
+
+        return self.hbar
 
     def on_focus(self):
         self.term.grab_focus()
 
+    def __cfg_cwd(self):
+        if not self.cfg.has_key("cwd"):
+            return None
+
+        cwd = self.cfg["cwd"]
+        if cwd.startswith("~"):
+            home = os.environ["HOME"]
+            cwd = home + cwd[1:] 
+        return cwd
+
     def on_open(self, cfg):
         self.cfg = cfg
-        cwd = None
-        if cfg.has_key("cwd"):
-            cwd = cfg["cwd"]
-
+        cwd = self.__cfg_cwd()
         cmd = ['/bin/bash']
         self.childpid = self.term.RUN(cmd, cwd)
 
@@ -76,6 +80,17 @@ class shell(AbsTab):
     def __on_title_changed(self, title):
         self.head.set_title(title);
 
+        idx = title.find(":")
+        if idx != -1:
+            cwd = title[idx+1:].strip()
+        else:
+            cwd = "~"
+
+        if cwd.startswith("~"):
+            cwd = os.environ["HOME"] + cwd[1:] 
+
+        self.cwd = cwd
+
     def __on_fman_clicked(self, widget):
-        Misc.execute("xdg-open .")
+        Misc.execute("xdg-open file://" + self.cwd + "/", cwd=self.cwd)
 

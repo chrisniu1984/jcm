@@ -45,18 +45,6 @@ class ssh(AbsTab):
         #self.vbox.pack_start(self.entry, False, False, 0)
         #self.vbox.show_all()
 
-        # header items
-        # filezilla
-        if os.path.exists('/usr/bin/filezilla'):
-            item = Gtk.Button()
-            item.set_relief(Gtk.ReliefStyle.NONE)
-            #style = item.get_style().copy()
-            #item.bg[Gtk.StateFlags.PRELIGHT] = item.bg[Gtk.StateFlags.NORMAL]
-            #item.set_style(style)
-            item.set_image(self.frame.load_icon(ICON_FILEZILLA))
-            item.connect("clicked", self.__on_filezilla_clicked)
-            self.hdr_bar = item
-
         self.cwd = ""
 
     def HEAD(self):
@@ -65,8 +53,20 @@ class ssh(AbsTab):
     def BODY(self):
         return self.vbox
 
-    def TOOL(self):
-        return self.hdr_bar
+    def HBAR(self):
+        if not hasattr(self, "hbar"):
+            # filezilla
+            if os.path.exists('/usr/bin/filezilla'):
+                item = Gtk.Button()
+                item.set_relief(Gtk.ReliefStyle.NONE)
+                #style = item.get_style().copy()
+                #item.bg[Gtk.StateFlags.PRELIGHT] = item.bg[Gtk.StateFlags.NORMAL]
+                #item.set_style(style)
+                item.set_image(self.frame.load_icon(ICON_FILEZILLA))
+                item.connect("clicked", self.__on_filezilla_clicked)
+                self.hbar = item
+
+        return self.hbar
 
     def on_focus(self):
         #if self.entry.is_focus() == False:
@@ -215,27 +215,27 @@ class ssh(AbsTab):
         self.on_close()
 
     def __on_execute_clicked(self, widget, val):
-        uri = val
-        if uri.find("#URI#") != -1:
+        cmd = val
+        if cmd.find("#URI#") != -1:
             s = "sftp://#USER#:#PASS#@#HOST#:#PORT##CWD#"
-            uri = uri.replace("#URI#", s)
+            cmd = cmd.replace("#URI#", s)
 
-        uri = uri.replace("#USER#", self.cfg["user"])
-        uri = uri.replace("#PASS#", self.cfg["pass"])
-        uri = uri.replace("#HOST#", self.cfg["host"])
-        uri = uri.replace("#PORT#", self.cfg["port"])
-        uri = uri.replace("#CWD#",  self.cwd)
+        cmd = cmd.replace("#USER#", self.cfg["user"])
+        cmd = cmd.replace("#PASS#", self.cfg["pass"])
+        cmd = cmd.replace("#HOST#", self.cfg["host"])
+        cmd = cmd.replace("#PORT#", self.cfg["port"])
+        cmd = cmd.replace("#CWD#",  self.cwd)
 
-        Misc.execute(uri)
+        Misc.execute(cmd)
 
     def __on_filezilla_clicked(self, widget):
-        uri = "filezilla sftp://#USER#:#PASS#@#HOST#:#PORT##CWD#"
-        uri = uri.replace("#USER#", self.cfg["user"])
-        uri = uri.replace("#PASS#", self.cfg["pass"])
-        uri = uri.replace("#HOST#", self.cfg["host"])
-        uri = uri.replace("#PORT#", self.cfg["port"])
-        uri = uri.replace("#CWD#",  self.cwd)
-        Misc.execute(uri)
+        cmd = "filezilla sftp://#USER#:#PASS#@#HOST#:#PORT##CWD#"
+        cmd = cmd.replace("#USER#", self.cfg["user"])
+        cmd = cmd.replace("#PASS#", self.cfg["pass"])
+        cmd = cmd.replace("#HOST#", self.cfg["host"])
+        cmd = cmd.replace("#PORT#", self.cfg["port"])
+        cmd = cmd.replace("#CWD#",  self.cwd)
+        Misc.execute(cmd)
 
     def __on_menu_input_clicked(self, widget):
         attr = getattr(widget, "__ATTR__")

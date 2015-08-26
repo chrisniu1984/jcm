@@ -16,7 +16,6 @@ PATH_RES="res"
 PATH_CONFIG=".jcm"
 
 ICON_APP="app.png"
-
 ICON_CLOSEALL = "close_all.png"
 ICON_CLOSE="close.png"
 
@@ -87,7 +86,7 @@ class AbsTab:
     def HEAD(self):abstract # 获取tab头控件
     def BODY(self):abstract # 获取tab内容控件
 
-    def TOOL(self):
+    def HBAR(self):
         return None
 
     def on_focus(self):
@@ -119,9 +118,9 @@ class Frame:
         self.window = Gtk.ApplicationWindow(Gtk.WindowType.TOPLEVEL)
         self.window.set_icon_from_file(self.path_res + "/" + ICON_APP)
         self.window.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-        #self.window.set_default_size(500, 400)
         #self.window.set_decorated(False)
         self.window.maximize()
+        self.window.set_default_size(400, 300)
         self.window.set_events(Gdk.EventMask.KEY_PRESS_MASK)
         self.window.connect('key-press-event', self._on_window_key_press)
         self.window.connect('delete-event',self._on_window_delete_event)
@@ -173,7 +172,7 @@ class Frame:
 
         # add new
         tab = getattr(page, "tab")
-        self.header_item = tab.TOOL()
+        self.header_item = tab.HBAR()
         if self.header_item != None:
             self.header_box.pack_start(self.header_item, False, False, 0)
             self.header_box.show_all()

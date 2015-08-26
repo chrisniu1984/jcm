@@ -11,7 +11,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-from NIU import Frame, AbsTab, TabHead
+from NIU import Frame, AbsTab, TabHead, Term, Expect, Misc
 
 SITEFILE = "site.xml"
 
@@ -40,24 +40,37 @@ class __site(AbsTab):
         self.img["ssh"]     = self.frame.load_pixbuf(IMG_SSH, 24)
 
         # head
-        #self.head = TabHead(frame, title="Site List", clone=False, close=False)
         self.head = TabHead(frame, title="Site List", close=False)
 
-        self.__header_item()
-
         # body
-        self.vbox = Gtk.VBox(False, 0)
-        self._treestore()
-        self._treeview()
+        self.__init_treestore()
+        self.__init_treeview()
 
     def HEAD(self):
         return self.head
 
     def BODY(self):
-        return self.vbox
+        return self.treeview
 
-    def TOOL(self):
-        return self.hdr_bar
+    def HBAR(self):
+        if not hasattr(self, "hbar"):
+            self.hbar = Gtk.HBox()
+
+            # reload config
+            item = Gtk.Button()
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon(IMG_RELOAD))
+            item.connect("clicked", self.__on_reload_clicked)
+            self.hbar.pack_start(item, False, False, 0)
+
+            # edit config
+            item = Gtk.Button()
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon(IMG_EDIT))
+            item.connect("clicked", self.__on_edit_clicked)
+            self.hbar.pack_start(item, False, False, 0)
+
+        return self.hbar
 
     def on_focus(self):
         self.treeview.grab_focus();
@@ -65,82 +78,16 @@ class __site(AbsTab):
     def on_open(self, cfg):
         pass
 
-    def __header_item(self):
-        self.hdr_bar = Gtk.HBox()
-
-        # reload config
-        item = Gtk.Button()
-        item.set_relief(Gtk.ReliefStyle.NONE)
-        item.set_image(self.frame.load_icon(IMG_RELOAD))
-        item.connect("clicked", self._on_reload_clicked)
-        self.hdr_bar.pack_start(item, False, False, 0)
-
-        # edit config
-        item = Gtk.Button()
-        item.set_relief(Gtk.ReliefStyle.NONE)
-        #item.set_label("Edit Config")
-        item.set_image(self.frame.load_icon(IMG_EDIT))
-        item.connect("clicked", self._on_edit_clicked)
-        self.hdr_bar.pack_start(item, False, False, 0)
-
-    def _on_reload_clicked(self, widget, data=None):
-        if os.path.exists(self.config) == False:
-            shutil.copyfile(self.frame.path_example + "/site.xml", self.config)
-
-        if os.access(self.config, os.R_OK):
-            self.treestore.clear()
-            root = ET.ElementTree(file=self.config).getroot()
-            self._append_node(root, None)
-
-    def _on_edit_clicked(self, widget, data=None):
-        os.system("gvim " + self.config)
-
-    def _cfg_extra(self, xml_node):
-        name = xml_node.tag;
-        attr = xml_node.attrib.copy();
-        lst = []
-        for child in xml_node:
-            lst.append(self._cfg_extra(child))
-
-        return {"__NAME__":name, "__ATTR__" : attr, "__CHILDREN__":lst}
-
-    def _append_node(self, xml_node, parent):
-        if xml_node.tag == "root":
-            for child in xml_node:
-                self._append_node(child, parent)
-
-        elif xml_node.tag == "dir":
-            p = self.treestore.append(parent, [self.img["dir"], xml_node.attrib["name"], None]);
-            for child in xml_node:
-                self._append_node(child, p)
-
-        # xml中每个site元素都会生成一个字段对象cfg，cfg对象的具体结构如下：
-        # 1、site元素的所有属性都通过字典方式存储到cfg对象中。
-        # 2、cfg中有个特殊的key叫做"__EXTRA__"，其值是个数组。用来存储所有字节点。
-        #    数组中每个成员格式为 {__NAME__, __ATTR__, __CHILDREN__}。
-        elif xml_node.tag == "site":
-            cfg = xml_node.attrib.copy() # 当前元素所有属性通过字典方式存储
-            cfg["__EXTRA__"] = [] # 子节点通过数组方式存储,_每个成员格式为 {NAME, ATTR, CHILDREN}。
-            for c in xml_node:
-                cfg["__EXTRA__"].append(self._cfg_extra(c));
-
-            img = self.img["site"]
-            if cfg.has_key("type") and self.img.has_key(cfg["type"]):
-                img = self.img[cfg["type"]]
-            p = self.treestore.append(parent, [img, cfg["name"], cfg])
-            # print cfg
-
-    def _treestore(self):
+    def __init_treestore(self):
         self.treestore = Gtk.TreeStore(Pixbuf, GObject.TYPE_STRING, object)
-        self._on_reload_clicked(None)
+        self.__reload_cfg()
 
-    def _treeview(self):
+    def __init_treeview(self):
         self.treeview = Gtk.TreeView()
         self.treeview.set_model(self.treestore)
-        self.vbox.pack_start(self.treeview, True, True, 0)
 
         self.treeview.set_headers_visible(False)
-        self.treeview.connect("row-activated", self._on_treeview_row_activated)
+        self.treeview.connect("row-activated", self.__on_treeview_row_activated)
         sel = self.treeview.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
 
         col = Gtk.TreeViewColumn()
@@ -154,7 +101,8 @@ class __site(AbsTab):
         col.pack_start(renderer, False);
         col.add_attribute(renderer, "text", COL_NAME);
 
-    def _on_treeview_row_activated(self, widget, path, data=None):
+
+    def __on_treeview_row_activated(self, widget, path, data=None):
         it = self.treestore.get_iter(path)
         cfg = self.treestore.get_value(it, COL_CFG)
         if cfg == None:
@@ -165,3 +113,56 @@ class __site(AbsTab):
             return
 
         self.frame.run(cfg)
+
+    def __on_reload_clicked(self, widget, data=None):
+        self.__reload_cfg()
+
+    def __on_edit_clicked(self, widget, data=None):
+        #os.system("gvim " + self.config)
+        Misc.execute("xdg-open " + self.config)
+
+    def __cfg_extra(self, xml_node):
+        name = xml_node.tag;
+        attr = xml_node.attrib.copy();
+        lst = []
+        for child in xml_node:
+            lst.append(self.__cfg_extra(child))
+
+        return {"__NAME__":name, "__ATTR__" : attr, "__CHILDREN__":lst}
+
+    def __append_node(self, xml_node, parent):
+        if xml_node.tag == "root":
+            for child in xml_node:
+                self.__append_node(child, parent)
+
+        elif xml_node.tag == "dir":
+            p = self.treestore.append(parent, [self.img["dir"], xml_node.attrib["name"], None]);
+            for child in xml_node:
+                self.__append_node(child, p)
+
+        # xml中每个site元素都会生成一个字段对象cfg，cfg对象的具体结构如下：
+        # 1、site元素的所有属性都通过字典方式存储到cfg对象中。其中我只关心属性name和type，其他本大爷不关心。
+        # 2、cfg中有个特殊的key叫做"__EXTRA__"，其值是个数组。用来存储site下的所有子节点。
+        #    数组中每个成员格式为字典： {__NAME__, __ATTR__, __CHILDREN__}。
+        #    其中的__CHILDREN__又是一个数组，与本节点存储方式相同。
+        elif xml_node.tag == "site":
+            cfg = xml_node.attrib.copy() # 当前元素所有属性通过字典方式存储
+            cfg["__EXTRA__"] = []
+            for c in xml_node:
+                cfg["__EXTRA__"].append(self.__cfg_extra(c));
+
+            img = self.img["site"]
+            if cfg.has_key("type") and self.img.has_key(cfg["type"]):
+                img = self.img[cfg["type"]]
+            p = self.treestore.append(parent, [img, cfg["name"], cfg])
+            # print cfg
+
+    def __reload_cfg(self):
+        if os.path.exists(self.config) == False:
+            shutil.copyfile(self.frame.path_example + "/site.xml", self.config)
+
+        if os.access(self.config, os.R_OK):
+            self.treestore.clear()
+            root = ET.ElementTree(file=self.config).getroot()
+            self.__append_node(root, None)
+
