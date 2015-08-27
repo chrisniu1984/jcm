@@ -55,16 +55,34 @@ class ssh(AbsTab):
 
     def HBAR(self):
         if not hasattr(self, "hbar"):
+            hbox = Gtk.HBox()
+            self.hbar = hbox
+
             # filezilla
             if os.path.exists('/usr/bin/filezilla'):
                 item = Gtk.Button()
+                item.set_tooltip_text("Open Filezilla")
                 item.set_relief(Gtk.ReliefStyle.NONE)
                 #style = item.get_style().copy()
                 #item.bg[Gtk.StateFlags.PRELIGHT] = item.bg[Gtk.StateFlags.NORMAL]
                 #item.set_style(style)
                 item.set_image(self.frame.load_icon(ICON_FILEZILLA))
                 item.connect("clicked", self.__on_filezilla_clicked)
-                self.hbar = item
+                hbox.pack_start(item, False, False, 0)
+
+            item = Gtk.Button()
+            item.set_tooltip_text("Font Size Less")
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon("fontsize-less.png"))
+            item.connect("clicked", self.__on_fsize_less_clicked)
+            hbox.pack_start(item, False, False, 0);
+
+            item = Gtk.Button()
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_tooltip_text("Font Size More")
+            item.set_image(self.frame.load_icon("fontsize-more.png"))
+            item.connect("clicked", self.__on_fsize_more_clicked)
+            hbox.pack_start(item, False, False, 0);
 
         return self.hbar
 
@@ -254,6 +272,14 @@ class ssh(AbsTab):
             self.term.expect[expect.hint] = expect
         else:
             del self.term.expect[expect.hint]
+
+    def __on_fsize_less_clicked(self, widget):
+        a = self.term.get_font_scale()
+        self.term.set_font_scale(a-0.2)
+
+    def __on_fsize_more_clicked(self, widget):
+        a = self.term.get_font_scale()
+        self.term.set_font_scale(a+0.2)
 
     def __on_title_changed(self, title):
         idx = title.find(":")

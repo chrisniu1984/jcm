@@ -46,6 +46,7 @@ class TabHead(Gtk.HBox):
         # close button
         if close:
             self.close = Gtk.Button()
+            self.close.set_tooltip_text("Close")
             self.close.set_image(self.frame.load_img(ICON_CLOSE, MENU_SIZE))
             self.close.set_relief(Gtk.ReliefStyle.NONE)
             self.pack_start(self.close, False, False, 0);
@@ -135,6 +136,7 @@ class Frame:
 
         # close all tabs
         item = Gtk.Button()
+        item.set_tooltip_text("Close All Tabs")
         #sc = item.get_style_context()
         #style.bg[Gtk.StateType.PRELIGHT] = style.bg[Gtk.StateType.NORMAL]
         #item.set_style(style)

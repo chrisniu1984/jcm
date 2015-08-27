@@ -35,11 +35,30 @@ class shell(AbsTab):
 
     def HBAR(self):
         if not hasattr(self, "hbar"):
+            hbox = Gtk.HBox()
+            self.hbar = hbox
+
             item = Gtk.Button()
+            item.set_tooltip_text("Open FileManager")
             item.set_relief(Gtk.ReliefStyle.NONE)
             item.set_image(self.frame.load_icon(ICON_FMAN))
             item.connect("clicked", self.__on_fman_clicked)
-            self.hbar = item
+            hbox.pack_start(item, False, False, 0);
+
+            item = Gtk.Button()
+            item.set_tooltip_text("Font Size Less")
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon("fontsize-less.png"))
+            item.connect("clicked", self.__on_fsize_less_clicked)
+            hbox.pack_start(item, False, False, 0);
+
+            item = Gtk.Button()
+            item.set_tooltip_text("Font Size More")
+            item.set_relief(Gtk.ReliefStyle.NONE)
+            item.set_image(self.frame.load_icon("fontsize-more.png"))
+            item.connect("clicked", self.__on_fsize_more_clicked)
+            hbox.pack_start(item, False, False, 0);
+            
 
         return self.hbar
 
@@ -94,3 +113,10 @@ class shell(AbsTab):
     def __on_fman_clicked(self, widget):
         Misc.execute("xdg-open file://" + self.cwd + "/", cwd=self.cwd)
 
+    def __on_fsize_less_clicked(self, widget):
+        a = self.term.get_font_scale()
+        self.term.set_font_scale(a-0.2)
+
+    def __on_fsize_more_clicked(self, widget):
+        a = self.term.get_font_scale()
+        self.term.set_font_scale(a+0.2)

@@ -58,6 +58,7 @@ class __site(AbsTab):
 
             # reload config
             item = Gtk.Button()
+            item.set_tooltip_text("Reload Config")
             item.set_relief(Gtk.ReliefStyle.NONE)
             item.set_image(self.frame.load_icon(IMG_RELOAD))
             item.connect("clicked", self.__on_reload_clicked)
@@ -65,6 +66,7 @@ class __site(AbsTab):
 
             # edit config
             item = Gtk.Button()
+            item.set_tooltip_text("Edit Config")
             item.set_relief(Gtk.ReliefStyle.NONE)
             item.set_image(self.frame.load_icon(IMG_EDIT))
             item.connect("clicked", self.__on_edit_clicked)
