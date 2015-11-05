@@ -1,6 +1,6 @@
 pkgname=jcm
 pkgver=1.2
-pkgrel=6
+pkgrel=7
 pkgdesc="Juniu Connect Manager"
 arch=('any')
 url="mailto:chrisniu1984@gmail.com"
