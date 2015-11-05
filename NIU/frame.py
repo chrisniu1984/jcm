@@ -37,8 +37,17 @@ class TabHead(Gtk.HBox):
             self.pack_start(self.icon, False, False, 0)
 
         # title
-        self.label = Gtk.Label(title)
+        self.label = Gtk.Label()
         self.pack_start(self.label, False, False, 0)
+
+        # menu label for popup
+        self.menu = Gtk.HBox()
+        if img != None and len(img) != 0:
+            self.menu_icon = self.frame.load_img(img, MENU_SIZE)
+            self.menu.pack_start(self.menu_icon, False, False, 0)
+        self.menu_label = Gtk.Label(title)
+        self.menu.pack_start(self.menu_label, False, False, 0)
+        self.menu.show_all()
 
         # entry for change title
         self.entry = Gtk.Entry();
@@ -55,8 +64,11 @@ class TabHead(Gtk.HBox):
             self.close.set_relief(Gtk.ReliefStyle.NONE)
             self.pack_start(self.close, False, False, 0);
 
+        self.set_title(title)
+
         self.show_all()
         self.entry.hide()
+
 
     def show_entry(self):
         if self.entry.is_visible() == False:
@@ -68,7 +80,7 @@ class TabHead(Gtk.HBox):
     def __on_entry_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Return:
             self.entry.hide()
-            self.label.set_text(" " + self.entry.get_text() + " ")
+            self.set_title(self.entry.get_text())
             self.label.show()
             return True
 
@@ -84,7 +96,12 @@ class TabHead(Gtk.HBox):
             self.close.connect("clicked", cb)
 
     def set_title(self, title):
-        self.label.set_text(title)
+        t = " " + title + " "
+        self.label.set_text(t)
+        self.menu_label.set_text(t)
+
+    def get_menu(self):
+        return self.menu
 
 class AbsTab:
     def __init__(self, frame):abstract
@@ -161,7 +178,8 @@ class Frame:
         self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
-        self.notebook.set_scrollable(True);
+        self.notebook.set_scrollable(True)
+        self.notebook.popup_enable()
         self.notebook.connect("switch-page", self.__on_notebook_switched)
         self.window.add(self.notebook)
 
@@ -231,7 +249,7 @@ class Frame:
         if isinstance(tab, AbsTab) == False:
             return -1
 
-        ret = self.notebook.append_page(tab.BODY(), tab.HEAD())
+        ret = self.notebook.append_page_menu(tab.BODY(), tab.HEAD(), tab.HEAD().get_menu())
         self.notebook.set_tab_reorderable(tab.BODY(), reorderable)
         self.notebook.show_all()
         self.window.show_all()
