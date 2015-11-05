@@ -6,7 +6,11 @@ import os.path
 import sys
 
 import gi
+gi.require_version("GObject", "2.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
+gi.require_version("Vte", "2.91")
+gi.require_version("GdkPixbuf", "2.0")
 
 from gi.repository import Gdk, Gtk, GObject, GdkPixbuf
 from gi.repository.GdkPixbuf import Pixbuf
@@ -157,6 +161,7 @@ class Frame:
         self.notebook = Gtk.Notebook()
         self.notebook.set_show_border(True)
         self.notebook.set_show_tabs(True)
+        self.notebook.set_scrollable(True);
         self.notebook.connect("switch-page", self.__on_notebook_switched)
         self.window.add(self.notebook)
 

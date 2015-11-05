@@ -1,11 +1,11 @@
 pkgname=jcm
 pkgver=1.2
-pkgrel=5
+pkgrel=6
 pkgdesc="Juniu Connect Manager"
 arch=('any')
-url="https://bitgithub.com/X0rg/dmg2dir"
+url="mailto:chrisniu1984@gmail.com"
 license=('custom')
-depends=('python2' 'python2-gobject' 'bash' 'openssh')
+depends=('python2' 'python2-gobject' 'bash' 'openssh' 'vte3')
 install=install
 
 package() {
